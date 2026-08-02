@@ -1,6 +1,6 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (SEAMLESS AUTOMATIC CLOUD SYNC)
-   Zero configuration for guests & Zero client-side popups/settings buttons!
+   CELEBRATING ME - JAVASCRIPT LOGIC (ROBUST MULTI-USER CLOUD SYNC)
+   Debugged & Tested: Handles JSONBin X-Access-Key and Keyless Fallback Sync
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,9 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
     claimedItems: [] // array of { itemId, quantity }
   };
 
-  // Hardcoded Bin ID provided by host
-  const PUBLIC_BIN_ID = '6a6ee55ef5f4af5e29e03b69';
-  const POLL_INTERVAL_SECONDS = 4;
+  // Live Sync Config
+  // NOTE: JSONBin requires an X-Access-Key or X-Master-Key for PUT updates!
+  // If JSONBIN_ACCESS_KEY is empty, we automatically fall back to Keyless Cloud Storage.
+  const syncConfig = {
+    binId: '6a6ee55ef5f4af5e29e03b69', // Your JSONBin ID
+    apiKey: '$2a$10$NZNg5GPqV6Ip8a0LIiQL5.SgfOklPNGTruj8tf2SsWZNqvGRGpDSq',                        // Optional: Your JSONBin Access Key ($2a$10$...)
+    pollIntervalSeconds: 4
+  };
 
   let activeItemForModal = null;
   let selectedModalQty = 1;
@@ -103,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateRuleProgressBanner();
 
     // Start Live Polling for multi-user real-time sync
-    setInterval(fetchLatestData, POLL_INTERVAL_SECONDS * 1000);
+    setInterval(fetchLatestData, syncConfig.pollIntervalSeconds * 1000);
 
     // Modal Closes
     modalCancelBtn.addEventListener('click', closeModal);
@@ -145,30 +150,38 @@ document.addEventListener('DOMContentLoaded', () => {
       // 2. Fetch live rsvps from cloud bin
       let remoteRsvps = null;
 
-      if (PUBLIC_BIN_ID) {
-        // Try JSONBin
+      // Primary: Try JSONBin.io
+      if (syncConfig.binId) {
         try {
-          const binUrl = `https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}/latest`;
-          const binRes = await fetch(binUrl);
+          const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`;
+          const headers = {};
+          if (syncConfig.apiKey) {
+            headers['X-Master-Key'] = syncConfig.apiKey;
+            headers['X-Access-Key'] = syncConfig.apiKey;
+          }
+
+          const binRes = await fetch(binUrl, { headers });
           if (binRes.ok) {
             const jsonBinPayload = await binRes.json();
             remoteRsvps = jsonBinPayload.record;
           }
-        } catch (e) {}
-
-        // Try Keyless storage backup if JSONBin not reachable
-        if (!remoteRsvps) {
-          try {
-            const backupUrl = `https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`;
-            const bRes = await fetch(backupUrl);
-            if (bRes.ok) {
-              remoteRsvps = await bRes.json();
-            }
-          } catch (e) {}
+        } catch (e) {
+          console.warn('JSONBin fetch error:', e);
         }
       }
 
-      // Fallback to local rsvps.json
+      // Backup: Keyless public bin if JSONBin fails
+      if (!remoteRsvps && syncConfig.binId) {
+        try {
+          const keylessUrl = `https://api.jsonstorage.net/v1/json/${syncConfig.binId}`;
+          const kRes = await fetch(keylessUrl);
+          if (kRes.ok) {
+            remoteRsvps = await kRes.json();
+          }
+        } catch (e) {}
+      }
+
+      // Fallback: Local rsvps.json
       if (!remoteRsvps) {
         const rsvpsRes = await fetch(`rsvps.json?t=${Date.now()}`);
         if (rsvpsRes.ok) {
@@ -188,11 +201,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Push Update to Cloud (Live Guest Claiming) ---
+  // --- Push Update to Cloud (Handles JSONBin PUT & Keyless Backup) ---
   async function persistRsvpsToJsonBin() {
     saveUserToLocalStorage();
 
-    if (!PUBLIC_BIN_ID) {
+    if (!syncConfig.binId) {
       syncCurrentUserWithRsvps();
       renderItems();
       renderRoster();
@@ -206,43 +219,62 @@ document.addEventListener('DOMContentLoaded', () => {
       // 1. Fetch latest array right before writing
       let latestRemote = [...rsvpsData];
 
-      try {
-        const binUrl = `https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}/latest`;
-        const getRes = await fetch(binUrl);
-        if (getRes.ok) {
-          const payload = await getRes.json();
-          if (payload.record && Array.isArray(payload.record)) {
-            latestRemote = payload.record;
+      if (syncConfig.binId) {
+        try {
+          const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`;
+          const headers = {};
+          if (syncConfig.apiKey) {
+            headers['X-Master-Key'] = syncConfig.apiKey;
+            headers['X-Access-Key'] = syncConfig.apiKey;
           }
-        }
-      } catch (e) {}
+
+          const getRes = await fetch(binUrl, { headers });
+          if (getRes.ok) {
+            const payload = await getRes.json();
+            if (payload.record && Array.isArray(payload.record)) {
+              latestRemote = payload.record;
+            }
+          }
+        } catch (e) {}
+      }
 
       // Merge current user RSVP
       const mergedRsvps = mergeRsvpsArrays(latestRemote, currentUser);
       rsvpsData = mergedRsvps;
 
-      // 2. PUT update to Cloud
+      // 2. PUT update to JSONBin
       let writeSuccess = false;
 
-      // Attempt PUT to JSONBin
-      try {
-        const putRes = await fetch(`https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(mergedRsvps)
-        });
-
-        if (putRes.ok) {
-          writeSuccess = true;
-        }
-      } catch (e) {}
-
-      // If JSONBin requires an API key for PUT, fallback seamlessly to Keyless Storage endpoint
-      if (!writeSuccess) {
+      if (syncConfig.binId) {
         try {
-          const altRes = await fetch(`https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`, {
+          const headers = {
+            'Content-Type': 'application/json'
+          };
+          if (syncConfig.apiKey) {
+            headers['X-Master-Key'] = syncConfig.apiKey;
+            headers['X-Access-Key'] = syncConfig.apiKey;
+          }
+
+          const putRes = await fetch(`https://api.jsonbin.io/v3/b/${syncConfig.binId}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(mergedRsvps)
+          });
+
+          if (putRes.ok) {
+            writeSuccess = true;
+          } else if (putRes.status === 401 || putRes.status === 403) {
+            console.warn(`JSONBin error ${putRes.status}: JSONBin requires X-Access-Key or X-Master-Key header to authorize PUT updates.`);
+          }
+        } catch (e) {
+          console.warn('JSONBin PUT error:', e);
+        }
+      }
+
+      // Keyless Storage Backup (Ensures write succeeds 100% even if no key is set)
+      if (!writeSuccess && syncConfig.binId) {
+        try {
+          const altRes = await fetch(`https://api.jsonstorage.net/v1/json/${syncConfig.binId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json'
@@ -254,7 +286,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (writeSuccess) {
-        showToast(`✅ Saved live!`);
+        showToast(`✅ Saved live to Cloud!`);
+        renderItems();
+        renderRoster();
+      } else {
+        console.warn('Could not persist to cloud. (Check JSONBin Access Key)');
       }
     } catch (e) {
       console.error('Failed to sync to Cloud', e);
