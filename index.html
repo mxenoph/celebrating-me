@@ -31,11 +31,6 @@
         <span class="event-pill">🍢 Souvlakia Feast</span>
       </div>
 
-      <!-- Live Sync Status Indicator -->
-      <div class="sync-indicator" id="sync-status-banner">
-        <!-- Rendered dynamically by script.js -->
-      </div>
-
       <!-- Intro Story Card -->
       <div class="story-card">
         <h3><span>🔥</span> How This Idea Came To Be</h3>
@@ -208,43 +203,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Live Sync Settings Modal -->
-  <div class="modal-overlay" id="admin-modal">
-    <div class="modal-box">
-      <div class="modal-title"><span>⚡</span> Live Sync Settings</div>
-      <div class="modal-body">
-        <p>Set your <strong>Public Bin ID</strong> for instant live guest claims across all devices:</p>
-        
-        <div style="margin: 16px 0; display: flex; flex-direction: column; gap: 12px;">
-          <div class="form-group">
-            <label for="jsonbin-bin-id">Public Cloud Bin ID</label>
-            <input type="text" id="jsonbin-bin-id" class="input-field" placeholder="e.g. 66ab1234567890...">
-          </div>
-        </div>
-
-        <button class="btn-primary" id="save-sync-config-btn" style="margin-bottom: 12px;">
-          <span>💾 Save Public Bin ID</span>
-        </button>
-
-        <hr style="border: 0; border-top: 1px solid var(--border-light); margin: 16px 0;">
-
-        <p style="font-size: 0.9rem;">Or download the current JSON data to commit manually:</p>
-        <button class="btn-secondary" id="download-json-btn" style="margin-top: 8px; width: 100%;">
-          <span>📥 Download Updated rsvps.json</span>
-        </button>
-      </div>
-
-      <div class="modal-actions" style="margin-top: 16px;">
-        <button class="btn-secondary close-modal">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Host Floating Trigger Button -->
-  <button class="admin-badge-trigger" id="admin-trigger-btn">
-    ⚡ Live Sync & Settings
-  </button>
 
   <script src="script.js"></script>
 </body>
