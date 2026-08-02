@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Public JSONBin.io Live Sync Settings (Paste your Public Bin ID here!)
   let syncConfig = {
-    binId: '', // e.g. '66ab1234567890...' (Paste your Public Bin ID here or set in settings)
+    binId: '6a6ee55ef5f4af5e29e03b69', // e.g. '66ab1234567890...' (Paste your Public Bin ID here or set in settings)
     pollIntervalSeconds: 5
   };
 
