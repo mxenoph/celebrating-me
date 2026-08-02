@@ -1,10 +1,6 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (FLOATING CONFIRM & FULL MASTER RESET)
-   Features:
-   - Floating Sticky "Confirm RSVP & Items" Action Bar
-   - Floating Circular Broom Bubble Reset Button ("banana")
-   - Full Master Reset: Wipes Guest Roster & Resets Item Availability
-   - Returning Guest Matching & Re-editing
+   CELEBRATING ME - JAVASCRIPT LOGIC (PERSISTENT MASTER RESET & FLOATING BUBBLES)
+   Verified: Master clear empty state persists across page refreshes!
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const qtyMinusBtn = document.getElementById('qty-minus');
   const qtyPlusBtn = document.getElementById('qty-plus');
 
-  // Expose global triggers for floating buttons
+  // Expose global triggers for floating bubble buttons
   window.triggerSecretReset = handleSecretReset;
   window.triggerRsvpConfirm = handleFloatingRsvpConfirm;
 
@@ -176,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateRuleProgressBanner();
   }
 
-  // --- Fetch Latest Data (Tries Cloud Bins first, fallback to local rsvps.json) ---
+  // --- Fetch Latest Data (Cloud first, fallback to empty rsvps.json) ---
   async function fetchLatestData() {
     try {
       // 1. Fetch items.json
@@ -185,9 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsData = await itemsRes.json();
       }
 
-      // Check if user recently triggered a master reset locally
-      const resetTime = localStorage.getItem('cookout_reset_time');
-      if (resetTime && Date.now() - parseInt(resetTime) < 20000) {
+      // If user recently executed master reset, keep empty state
+      const isMasterReset = localStorage.getItem('cookout_master_reset');
+      if (isMasterReset === 'true') {
         rsvpsData = [];
         renderItems();
         renderRoster();
@@ -321,8 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputPassphrase.trim().toLowerCase() === SECRET_PASSPHRASE) {
       if (!confirm('Are you 100% sure you want to WIPE the entire guest roster and make ALL items 100% available again?')) return;
 
-      // 1. Set reset timestamp in localStorage to block stale re-fetches
-      localStorage.setItem('cookout_reset_time', Date.now().toString());
+      // 1. Set master reset flag in localStorage
+      localStorage.setItem('cookout_master_reset', 'true');
 
       // 2. Wipe memory arrays & current user state
       rsvpsData = [];
@@ -379,6 +375,8 @@ document.addEventListener('DOMContentLoaded', () => {
       showPreRsvpModal();
       return;
     }
+    // Clear master reset flag when new RSVP is submitted
+    localStorage.removeItem('cookout_master_reset');
     rsvpForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   }
 
@@ -721,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Total needed: <strong>${item.totalNeeded} ${item.unit}</strong> | Claimed by others: <strong>${claimedByOthers}</strong> | Available: <strong>${maxAvailable}</strong>
       </div>
       <p style="font-size: 0.82rem; color: var(--accent-amber); margin-top: 8px;">
-        💡 <em>This holds the item temporarily. Click the "Save & Confirm My RSVP & Items" button on the page to lock in your choice!</em>
+        💡 <em>This holds the item temporarily. Click the floating 💾 bubble at the bottom right anytime to lock in your choice!</em>
       </p>
     `;
 
@@ -776,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateRuleProgressBanner();
 
     persistRsvpsToCloud();
-    showToast(quantity <= 0 ? `Unselected item!` : `Temporarily selected item! Click RSVP button to confirm.`);
+    showToast(quantity <= 0 ? `Unselected item!` : `Temporarily selected item! Click 💾 bubble to confirm.`);
   }
 
   function handleRsvpSubmit(e) {
@@ -787,6 +785,8 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Please enter your name!');
       return;
     }
+
+    localStorage.removeItem('cookout_master_reset');
 
     currentUser.name = name;
     currentUser.initials = guestInitialsInput.value.trim().toUpperCase() || getInitials(name);

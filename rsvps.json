@@ -1,17 +1,1 @@
-[
-  {
-    "id": "rsvp_sample_1",
-    "name": "Maria Xenophontos",
-    "initials": "MX",
-    "attending": "yes",
-    "guestsCount": 1,
-    "notes": "Bringing all the souvlakia meat on skewers! Going camping right after, so remember whoever brings the Foukou needs to take it back!",
-    "claimedItems": [
-      {
-        "itemId": "salt",
-        "quantity": 1
-      }
-    ],
-    "timestamp": "2026-08-01T10:00:00.000Z"
-  }
-]
+[]

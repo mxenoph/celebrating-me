@@ -1,10 +1,10 @@
 /* ==========================================================================
-   CELEBRATING ME - LIGHT & FRESH THEME (FLOATING CONFIRM BUTTON & MASTER RESET)
-   Includes:
-   - Floating Sticky "Confirm RSVP & Items" Action Bar at Bottom Center
-   - Floating Circular Broom Bubble Button on Bottom Right Corner
-   - 3-Column Items Grid with Green/Amber Card Borders
-   - Master Clear (Resets Roster & All Items)
+   CELEBRATING ME - LIGHT & FRESH THEME (FLOATING BUBBLE BUTTONS & MASTER RESET)
+   Features:
+   - Floating Action Bubble Buttons: 💾 Save & Confirm Bubble + 🧹 Broom Reset Bubble
+   - 3-Column Items Grid with Green & Amber Left Card Borders
+   - Two-Stage Reservation: Temporary Hold vs Confirmed RSVP
+   - Guest Name Matching & Re-editing
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
@@ -121,12 +121,12 @@ body {
   }
 }
 
-/* Container */
+/* Main Container */
 .container {
   max-width: 1400px;
   width: 94%;
   margin: 0 auto;
-  padding: 0 20px 120px 20px;
+  padding: 0 20px 100px 20px;
   position: relative;
   z-index: 1;
 }
@@ -977,72 +977,57 @@ body {
 }
 
 /* ==========================================================================
-   FLOATING CONFIRM BAR & FLOATING BROOM BUBBLE
+   FLOATING ACTION BUBBLES CONTAINER (BOTTOM RIGHT CORNER)
    ========================================================================== */
-
-/* Floating Sticky Confirm Button at Bottom Center */
-.floating-confirm-bar {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9990;
-  max-width: 90vw;
-  width: 480px;
-  display: flex;
-  justify-content: center;
-}
-
-.floating-confirm-btn {
-  width: 100%;
-  padding: 16px 28px;
-  background: linear-gradient(135deg, var(--accent-pine) 0%, var(--accent-emerald) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-radius: var(--radius-pill);
-  color: #ffffff;
-  font-size: 1.05rem;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 12px 36px rgba(15, 41, 30, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  backdrop-filter: blur(8px);
-  transition: var(--transition);
-}
-
-.floating-confirm-btn:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 16px 42px rgba(15, 41, 30, 0.45);
-}
-
-/* Floating Circular Broom Bubble (Bottom Right Corner) */
-.broom-bubble-btn {
+.floating-bubbles-container {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 54px;
-  height: 54px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+.bubble-btn {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid rgba(220, 38, 38, 0.3);
-  color: #dc2626;
   font-size: 1.6rem;
   cursor: pointer;
-  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.25);
   transition: var(--transition);
+  border: 2px solid rgba(255, 255, 255, 0.4);
 }
 
-.broom-bubble-btn:hover {
-  transform: scale(1.12) rotate(-10deg);
+/* 💾 Floppy Disk Save & Confirm Bubble */
+.confirm-bubble {
+  background: linear-gradient(135deg, var(--accent-pine) 0%, var(--accent-emerald) 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(30, 86, 49, 0.35);
+}
+
+.confirm-bubble:hover {
+  transform: scale(1.14);
+  box-shadow: 0 14px 35px rgba(30, 86, 49, 0.5);
+}
+
+/* 🧹 Broom Master Reset Bubble */
+.reset-bubble {
+  background: #ffffff;
+  border: 2px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
+}
+
+.reset-bubble:hover {
+  transform: scale(1.14) rotate(-10deg);
   background: #dc2626;
   color: #ffffff;
-  box-shadow: 0 15px 35px rgba(220, 38, 38, 0.4);
+  box-shadow: 0 12px 30px rgba(220, 38, 38, 0.4);
 }
 
 /* Toast Notifications */
@@ -1084,7 +1069,7 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
   .container {
-    padding: 0 16px 120px 16px;
+    padding: 0 16px 100px 16px;
     width: 98%;
   }
 }
@@ -1102,21 +1087,14 @@ body {
   .story-card {
     padding: 20px 18px;
   }
-  .floating-confirm-bar {
-    bottom: 16px;
-    left: 16px;
-    transform: none;
-    width: calc(100vw - 90px);
-  }
-  .floating-confirm-btn {
-    padding: 13px 18px;
-    font-size: 0.92rem;
-  }
-  .broom-bubble-btn {
+  .floating-bubbles-container {
     bottom: 16px;
     right: 16px;
-    width: 48px;
-    height: 48px;
+    gap: 10px;
+  }
+  .bubble-btn {
+    width: 50px;
+    height: 50px;
     font-size: 1.4rem;
   }
 }
