@@ -1,11 +1,9 @@
 /* ==========================================================================
-   CELEBRATING ME - LIGHT & FRESH THEME (TWO-STAGE CLAIMS & PASSPHRASE RESET)
+   CELEBRATING ME - LIGHT & FRESH THEME (FLOATING BROOM BUBBLE BUTTON)
    Features:
-   - Green/Amber Left Border for Available Items
-   - Prominent Selection Highlights for Current User
+   - Floating Circular Broom Bubble Button on Bottom Right Corner
    - Two-Stage System: Pending/Temporary hold vs Confirmed claim
    - Guest Name Matching & Re-editing
-   - Secret Passphrase Reset Button ("banana")
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
@@ -977,30 +975,34 @@ body {
   text-align: center;
 }
 
-/* Footer Secret Reset Button */
-.reset-footer {
-  text-align: center;
-  margin-top: 60px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border-light);
-}
-
-.btn-reset-danger {
-  padding: 8px 20px;
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
-  color: #991b1b;
-  border-radius: var(--radius-pill);
-  font-size: 0.85rem;
-  font-weight: 600;
+/* ==========================================================================
+   FLOATING CIRCULAR BROOM BUBBLE BUTTON (BOTTOM RIGHT CORNER)
+   ========================================================================== */
+.broom-bubble-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+  font-size: 1.6rem;
   cursor: pointer;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.25);
   transition: var(--transition);
 }
 
-.btn-reset-danger:hover {
+.broom-bubble-btn:hover {
+  transform: scale(1.12) rotate(-10deg);
   background: #dc2626;
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 15px 35px rgba(220, 38, 38, 0.4);
 }
 
 /* Toast Notifications */
@@ -1036,7 +1038,7 @@ body {
   }
 }
 
-/* Responsive Overrides */
+/* Responsive Grid Overrides */
 @media (max-width: 1100px) {
   .items-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1059,5 +1061,12 @@ body {
   }
   .story-card {
     padding: 20px 18px;
+  }
+  .broom-bubble-btn {
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
   }
 }

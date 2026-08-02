@@ -1,9 +1,9 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (WITH GUEST MATCHING & PASSPHRASE RESET)
+   CELEBRATING ME - JAVASCRIPT LOGIC (WITH FLOATING BROOM RESET)
    Features:
-   - Returning Guest Matching & Editing (by name)
+   - Floating Circular Broom Bubble Reset Button ("banana")
+   - Returning Guest Matching & Re-editing
    - Two-Stage Claims (Pending vs Confirmed)
-   - Secret Reset Button ("banana")
    - Real-time Cloud Polling & Multi-User Sync
    ========================================================================== */
 
@@ -59,7 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const qtyMinusBtn = document.getElementById('qty-minus');
   const qtyPlusBtn = document.getElementById('qty-plus');
 
-  const secretResetBtn = document.getElementById('secret-reset-btn');
+  // Global trigger function for the floating broom bubble button
+  window.triggerSecretReset = handleSecretReset;
 
   // --- Initial Setup ---
   initApp();
@@ -95,11 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Search Input
     searchInput.addEventListener('input', renderItems);
-
-    // Secret Reset Button ("banana")
-    if (secretResetBtn) {
-      secretResetBtn.addEventListener('click', handleSecretReset);
-    }
 
     // Initial Renders
     renderItems();
@@ -151,7 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const existingRsvp = rsvpsData.find(r => r.name && r.name.toLowerCase() === inputName.toLowerCase());
 
     if (existingRsvp) {
-      // Auto-populate form fields from existing record
       currentUser.initials = existingRsvp.initials || getInitials(inputName);
       currentUser.attending = existingRsvp.attending || 'yes';
       currentUser.guestsCount = existingRsvp.guestsCount || 1;
@@ -225,13 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (remoteRsvps && Array.isArray(remoteRsvps)) {
         rsvpsData = remoteRsvps;
 
-        // If current user is typing/editing, match and refresh claims
         if (currentUser.name) {
-          const matched = rsvpsData.find(r => r.name && r.name.toLowerCase() === currentUser.name.toLowerCase());
-          if (matched && matched.claimedItems) {
-            // Keep local pending items, update confirmed ones
-            syncCurrentUserWithRsvps();
-          }
+          syncCurrentUserWithRsvps();
         }
 
         renderItems();
@@ -243,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Push Update to Cloud (Live Guest Claiming) ---
+  // --- Push Update to Cloud ---
   async function persistRsvpsToCloud() {
     saveUserToLocalStorage();
 
@@ -272,11 +262,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (e) {}
 
-      // Merge current user RSVP
       const mergedRsvps = mergeRsvpsArrays(latestRemote, currentUser);
       rsvpsData = mergedRsvps;
 
-      // PUT update to Cloud
       let writeSuccess = false;
 
       try {
@@ -336,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rsvpForm.reset();
       returningGuestNotice.innerHTML = '';
 
-      // Commit empty array [] to Cloud Bin
+      // Commit empty array [] to Cloud Bins
       try {
         await fetch(`https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}`, {
           method: 'PUT',
@@ -386,6 +374,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return copy;
+  }
+
+  // --- Local Storage Helpers ---
+  function loadUserFromLocalStorage() {
+    const saved = localStorage.getItem('celebrating_me_user') || localStorage.getItem('mx_cookout_user');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        currentUser = { ...currentUser, ...parsed };
+        if (currentUser.name) {
+          guestNameInput.value = currentUser.name;
+          guestInitialsInput.value = currentUser.initials || getInitials(currentUser.name);
+          guestAttendingSelect.value = currentUser.attending || 'yes';
+          guestCountInput.value = currentUser.guestsCount || 1;
+          guestNotesInput.value = currentUser.notes || '';
+        }
+      } catch (e) {
+        console.error('LocalStorage parse error', e);
+      }
+    }
+  }
+
+  function saveUserToLocalStorage() {
+    localStorage.setItem('celebrating_me_user', JSON.stringify(currentUser));
+  }
+
+  function syncCurrentUserWithRsvps() {
+    if (!currentUser.name) return;
+    rsvpsData = mergeRsvpsArrays(rsvpsData, currentUser);
+  }
+
+  // --- Initials Extractor ---
+  function getInitials(name) {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
   // --- Countdown Timer ---
@@ -697,7 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
     modalOverlay.classList.remove('active');
   }
 
-  // Stage 1: Temporary Selection (Allow unselecting!)
   function saveItemClaim(itemId, quantity) {
     const existingIndex = currentUser.claimedItems.findIndex(c => c.itemId === itemId);
 
@@ -722,7 +746,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(quantity <= 0 ? `Unselected item!` : `Temporarily selected item! Click RSVP button to confirm.`);
   }
 
-  // Stage 2: Confirmed RSVP & Gifts Confirmation (Supports Re-editing & Updating!)
   function handleRsvpSubmit(e) {
     e.preventDefault();
 
@@ -738,7 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
     currentUser.guestsCount = parseInt(guestCountInput.value) || 1;
     currentUser.notes = guestNotesInput.value.trim();
 
-    // Lock in all selections as confirmed!
     currentUser.claimedItems.forEach(c => {
       c.status = 'confirmed';
     });
@@ -750,7 +772,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    // Broadcast updated/confirmed state to cloud
     persistRsvpsToCloud();
     showToast(`🎉 RSVP & Gifts Updated! Thank you, ${currentUser.name}!`);
   }
