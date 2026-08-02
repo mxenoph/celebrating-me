@@ -1,9 +1,10 @@
 /* ==========================================================================
-   CELEBRATING ME - LIGHT & FRESH THEME (FLOATING BROOM BUBBLE BUTTON)
-   Features:
+   CELEBRATING ME - LIGHT & FRESH THEME (FLOATING CONFIRM BUTTON & MASTER RESET)
+   Includes:
+   - Floating Sticky "Confirm RSVP & Items" Action Bar at Bottom Center
    - Floating Circular Broom Bubble Button on Bottom Right Corner
-   - Two-Stage System: Pending/Temporary hold vs Confirmed claim
-   - Guest Name Matching & Re-editing
+   - 3-Column Items Grid with Green/Amber Card Borders
+   - Master Clear (Resets Roster & All Items)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
@@ -33,7 +34,7 @@
 
   --shadow-main: 0 12px 32px rgba(15, 41, 30, 0.08);
   --shadow-hover: 0 20px 40px rgba(15, 41, 30, 0.14);
-  --shadow-glow: 0 0 20px rgba(46, 139, 87, 0.2);
+  --shadow-glow: 0 0 20px rgba(46, 139, 87, 0.25);
   
   --transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -120,12 +121,12 @@ body {
   }
 }
 
-/* Full Width Main Container */
+/* Container */
 .container {
   max-width: 1400px;
   width: 94%;
   margin: 0 auto;
-  padding: 0 20px 80px 20px;
+  padding: 0 20px 120px 20px;
   position: relative;
   z-index: 1;
 }
@@ -976,8 +977,47 @@ body {
 }
 
 /* ==========================================================================
-   FLOATING CIRCULAR BROOM BUBBLE BUTTON (BOTTOM RIGHT CORNER)
+   FLOATING CONFIRM BAR & FLOATING BROOM BUBBLE
    ========================================================================== */
+
+/* Floating Sticky Confirm Button at Bottom Center */
+.floating-confirm-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9990;
+  max-width: 90vw;
+  width: 480px;
+  display: flex;
+  justify-content: center;
+}
+
+.floating-confirm-btn {
+  width: 100%;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, var(--accent-pine) 0%, var(--accent-emerald) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-pill);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 36px rgba(15, 41, 30, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  backdrop-filter: blur(8px);
+  transition: var(--transition);
+}
+
+.floating-confirm-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 16px 42px rgba(15, 41, 30, 0.45);
+}
+
+/* Floating Circular Broom Bubble (Bottom Right Corner) */
 .broom-bubble-btn {
   position: fixed;
   bottom: 24px;
@@ -1038,13 +1078,13 @@ body {
   }
 }
 
-/* Responsive Grid Overrides */
+/* Responsive Overrides */
 @media (max-width: 1100px) {
   .items-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .container {
-    padding: 0 16px 60px 16px;
+    padding: 0 16px 120px 16px;
     width: 98%;
   }
 }
@@ -1061,6 +1101,16 @@ body {
   }
   .story-card {
     padding: 20px 18px;
+  }
+  .floating-confirm-bar {
+    bottom: 16px;
+    left: 16px;
+    transform: none;
+    width: calc(100vw - 90px);
+  }
+  .floating-confirm-btn {
+    padding: 13px 18px;
+    font-size: 0.92rem;
   }
   .broom-bubble-btn {
     bottom: 16px;

@@ -15,7 +15,14 @@
   <!-- Toast Notifications -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- Floating Broom Bubble Button (Bottom Right Corner) -->
+  <!-- Floating Sticky Confirm Action Bar (Bottom Center) -->
+  <div class="floating-confirm-bar" id="floating-confirm-bar">
+    <button type="button" class="floating-confirm-btn" onclick="triggerRsvpConfirm()">
+      <span>💾 Save & Confirm My RSVP & Items</span>
+    </button>
+  </div>
+
+  <!-- Floating Circular Broom Bubble Button (Bottom Right Corner) -->
   <button class="broom-bubble-btn" id="broom-reset-btn" onclick="triggerSecretReset()" title="Reset All Selections (Passphrase Required)">
     🧹
   </button>
@@ -156,7 +163,7 @@
       <div class="workflow-notice">
         <span style="font-size: 1.4rem;">💡</span>
         <div>
-          <strong>How Item Selection Works:</strong> Selecting an item temporarily holds it for you! You <strong>MUST click the "Save & Confirm My RSVP & Items" button</strong> above to lock in your selections and confirm what you're bringing.
+          <strong>How Item Selection Works:</strong> Selecting an item temporarily holds it for you! You <strong>MUST click the floating "Save & Confirm My RSVP & Items" button</strong> at the bottom to lock in your selections and confirm what you're bringing.
         </div>
       </div>
 

@@ -1,6 +1,10 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (FORCE MASTER RESET & LIVE SYNC)
-   Debugged & Verified: Passphrase "banana" wipes all RSVPs & resets item availability!
+   CELEBRATING ME - JAVASCRIPT LOGIC (FLOATING CONFIRM & FULL MASTER RESET)
+   Features:
+   - Floating Sticky "Confirm RSVP & Items" Action Bar
+   - Floating Circular Broom Bubble Reset Button ("banana")
+   - Full Master Reset: Wipes Guest Roster & Resets Item Availability
+   - Returning Guest Matching & Re-editing
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,8 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const qtyMinusBtn = document.getElementById('qty-minus');
   const qtyPlusBtn = document.getElementById('qty-plus');
 
-  // Expose reset function globally for the floating broom bubble button
+  // Expose global triggers for floating buttons
   window.triggerSecretReset = handleSecretReset;
+  window.triggerRsvpConfirm = handleFloatingRsvpConfirm;
 
   // --- Initial Setup ---
   initApp();
@@ -78,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderItems();
     });
 
-    // RSVP Submit (Confirms & Updates RSVP)
+    // RSVP Form Submit
     rsvpForm.addEventListener('submit', handleRsvpSubmit);
 
     // Filter Tabs
@@ -182,8 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Check if user recently triggered a master reset locally
       const resetTime = localStorage.getItem('cookout_reset_time');
-      if (resetTime && Date.now() - parseInt(resetTime) < 15000) {
-        // Enforce empty state immediately after reset
+      if (resetTime && Date.now() - parseInt(resetTime) < 20000) {
         rsvpsData = [];
         renderItems();
         renderRoster();
@@ -204,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (e) {}
 
-        // Keyless storage backup if needed
         if (!remoteRsvps) {
           try {
             const backupUrl = `https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`;
@@ -227,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (remoteRsvps && Array.isArray(remoteRsvps)) {
         rsvpsData = remoteRsvps;
 
-        if (currentUser.name) {
+        if (currentUser.name && rsvpsData.length > 0) {
           syncCurrentUserWithRsvps();
         }
 
@@ -309,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Secret Passphrase Reset ("banana") ---
+  // --- Secret Passphrase Master Reset ("banana") ---
   async function handleSecretReset() {
     const inputPassphrase = prompt('⚠️ PASSPHRASE PROTECTED MASTER RESET:\nEnter passphrase to delete ALL guest RSVPs and reset all item availability:');
 
@@ -318,10 +321,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputPassphrase.trim().toLowerCase() === SECRET_PASSPHRASE) {
       if (!confirm('Are you 100% sure you want to WIPE the entire guest roster and make ALL items 100% available again?')) return;
 
-      // 1. Set reset timestamp to prevent immediate re-fetch
+      // 1. Set reset timestamp in localStorage to block stale re-fetches
       localStorage.setItem('cookout_reset_time', Date.now().toString());
 
-      // 2. Wipe memory & local storage completely
+      // 2. Wipe memory arrays & current user state
       rsvpsData = [];
       currentUser = {
         name: '',
@@ -332,14 +335,15 @@ document.addEventListener('DOMContentLoaded', () => {
         claimedItems: []
       };
 
+      // 3. Clear all browser local storage
       localStorage.removeItem('celebrating_me_user');
       localStorage.removeItem('mx_cookout_user');
 
-      // 3. Clear form inputs
+      // 4. Reset form inputs & notices
       rsvpForm.reset();
       returningGuestNotice.innerHTML = '';
 
-      // 4. Overwrite Cloud Bins with empty array []
+      // 5. Overwrite Cloud Bins with empty array []
       try {
         await fetch(`https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}`, {
           method: 'PUT',
@@ -353,10 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify([])
         });
       } catch (e) {
-        console.warn('Cloud reset push failed', e);
+        console.warn('Cloud reset push error:', e);
       }
 
-      // 5. Force instant re-render of empty state
+      // 6. Force immediate re-render of 100% clean state
       renderItems();
       renderRoster();
       updateRuleProgressBanner();
@@ -366,6 +370,16 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       alert('❌ Incorrect passphrase! Access denied.');
     }
+  }
+
+  // --- Floating Confirm Button Trigger ---
+  function handleFloatingRsvpConfirm() {
+    const name = guestNameInput.value.trim();
+    if (!name) {
+      showPreRsvpModal();
+      return;
+    }
+    rsvpForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   }
 
   // Helper: Merges user RSVP safely into remote array
