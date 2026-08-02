@@ -1,0 +1,227 @@
+[
+  {
+    "id": "pork_bbq",
+    "name": "Pork BBQ Grill (Foukou)",
+    "category": "big",
+    "totalNeeded": 1,
+    "unit": "foukou grill",
+    "note": "As MX is bringing the meat she will be bringing it on skewers already, so we are using her bbq but whoever picks this will have to take the bbq back as afterwards MX is going camping!",
+    "icon": "🔥"
+  },
+  {
+    "id": "coal_firelighters",
+    "name": "Coal + Solid Firelighters (στερεό πετρέλαιο)",
+    "category": "big",
+    "totalNeeded": 2,
+    "unit": "bags/kits",
+    "note": "Essential for getting the souvlakia coals red hot!",
+    "icon": "🪵"
+  },
+  {
+    "id": "beers",
+    "name": "Beers x 8 (4 packs needed)",
+    "category": "big",
+    "totalNeeded": 4,
+    "unit": "8-packs",
+    "note": "4 packs of 8 beers total needed.",
+    "icon": "🍺"
+  },
+  {
+    "id": "foil_trays",
+    "name": "Foil Trays",
+    "category": "big",
+    "totalNeeded": 2,
+    "unit": "packs",
+    "note": "For keeping cooked souvlakia hot and ready.",
+    "icon": "🍱"
+  },
+  {
+    "id": "fruits",
+    "name": "Fresh Summer Fruits",
+    "category": "big",
+    "totalNeeded": 2,
+    "unit": "baskets/bowls",
+    "note": "Watermelon, melon, cherries, or peaches for dessert.",
+    "icon": "🍉"
+  },
+  {
+    "id": "thermos",
+    "name": "Thermos / Ice Cooler",
+    "category": "big",
+    "totalNeeded": 2,
+    "unit": "units",
+    "note": "Filled with ice or chilled beverages.",
+    "icon": "🧊"
+  },
+  {
+    "id": "plates",
+    "name": "Single Use Plates",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "packs",
+    "note": "Biodegradable/sturdy paper plates preferred.",
+    "icon": "🍽️"
+  },
+  {
+    "id": "cups",
+    "name": "Single Use Cups",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "packs",
+    "note": "For cold drinks & beer.",
+    "icon": "🥤"
+  },
+  {
+    "id": "salt",
+    "name": "Table Salt",
+    "category": "small",
+    "totalNeeded": 1,
+    "unit": "container",
+    "note": "To season cooked skewers.",
+    "icon": "🧂"
+  },
+  {
+    "id": "onions",
+    "name": "Onions (for salad & skewers)",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "bags",
+    "note": "Thinly sliced for Cyprus salad & pita stuffing.",
+    "icon": "🧅"
+  },
+  {
+    "id": "lemons",
+    "name": "Lemons",
+    "category": "small",
+    "totalNeeded": 3,
+    "unit": "bags",
+    "note": "Plenty of fresh Cyprus lemons for the souvlakia!",
+    "icon": "🍋"
+  },
+  {
+    "id": "tomatoes",
+    "name": "Tomatoes",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "bags",
+    "note": "Ripe & firm for salads.",
+    "icon": "🍅"
+  },
+  {
+    "id": "cucumber",
+    "name": "Cucumbers",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "packs",
+    "note": "Fresh local cucumbers.",
+    "icon": "🥒"
+  },
+  {
+    "id": "pitta",
+    "name": "Cypriot Pitta Bread",
+    "category": "small",
+    "totalNeeded": 4,
+    "unit": "packs",
+    "note": "Fresh pitta to stuff warm souvlakia into.",
+    "icon": "🥙"
+  },
+  {
+    "id": "nuts",
+    "name": "Packs of Nuts",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "packs",
+    "note": "Mixed nuts or peanuts for snacking.",
+    "icon": "🥜"
+  },
+  {
+    "id": "crisps",
+    "name": "Packs of Crisps",
+    "category": "small",
+    "totalNeeded": 3,
+    "unit": "packs",
+    "note": "3 packs of delicious crisps.",
+    "icon": "🥔"
+  },
+  {
+    "id": "rice_cakes",
+    "name": "Snack a Jacks Rice Cakes",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "packs",
+    "note": "Light rice cake snacks.",
+    "icon": "🍘"
+  },
+  {
+    "id": "tzatsiki",
+    "name": "Tzatziki",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "tubs",
+    "note": "Creamy cucumber garlic dip.",
+    "icon": "🥣"
+  },
+  {
+    "id": "tahini",
+    "name": "Tahini",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "tubs",
+    "note": "Rich sesame paste for the pitta.",
+    "icon": "🫙"
+  },
+  {
+    "id": "napkins",
+    "name": "Napkins",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "packs",
+    "note": "Paper napkins.",
+    "icon": "🧻"
+  },
+  {
+    "id": "kitchen_roll",
+    "name": "Kitchen Roll",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "rolls",
+    "note": "Heavy duty paper towels.",
+    "icon": "📜"
+  },
+  {
+    "id": "parsley",
+    "name": "Fresh Parsley",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "bunches",
+    "note": "Finely chopped for pitta filling.",
+    "icon": "🌿"
+  },
+  {
+    "id": "cabbage",
+    "name": "Cabbage",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "heads",
+    "note": "For shredding into Cypriot salad.",
+    "icon": "🥬"
+  },
+  {
+    "id": "detergent_kit",
+    "name": "Dish Detergent + Sponge + Trash Bags",
+    "category": "small",
+    "totalNeeded": 1,
+    "unit": "kit",
+    "note": "Clean-up essentials to leave Trooditisa spotless!",
+    "icon": "🧽"
+  },
+  {
+    "id": "tablecloth",
+    "name": "Tablecloth",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "tablecloths",
+    "note": "Disposable or washable picnic table cover.",
+    "icon": "🏁"
+  }
+]

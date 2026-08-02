@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MX's Birthday Cookout | Celebrating Me | August 8th</title>
+  <meta name="description" content="You're invited to MX's Birthday Souvlakia Cookout at Trooditisa Picnic Site on Saturday, August 8th! RSVP and pick your items to bring.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Floating Ambient Embers -->
+  <div class="particles-container" id="particles-container"></div>
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <div class="container">
+    
+    <!-- Hero Header -->
+    <header class="hero">
+      <div class="badge-tag">
+        <span>🍢</span> CYPRUS BIRTHDAY COOKOUT • TROODOS FOREST
+      </div>
+      
+      <h1 class="hero-title">MX's Birthday Cookout</h1>
+      
+      <div class="hero-subtitle">
+        <span class="event-pill">📅 Saturday, August 8th</span>
+        <span class="event-pill">📍 Trooditisa Picnic Site</span>
+        <span class="event-pill">🍢 Souvlakia Feast</span>
+      </div>
+
+      <!-- Intro Story Card -->
+      <div class="story-card">
+        <h3><span>🔥</span> How This Idea Came To Be</h3>
+        <p class="story-text">
+          "If I'm entertaining and I'm doing all the preparations, it's not really fun for me so this year I've decided that your gift to me will be to do the work. I've told you time and time again before not to bring gifts but you still do, so this year I'm deciding what you are allowed to bring!"
+        </p>
+        <div class="story-signature">— MX 🎂</div>
+      </div>
+
+      <!-- Mandatory Water Alert -->
+      <div class="water-alert">
+        <div class="water-alert-icon">💧</div>
+        <div class="water-alert-content">
+          <h4>Mandatory Water Rule</h4>
+          <p>Each guest <strong>MUST</strong> bring their own water in an insulated water bottle to stay hydrated in the mountain air!</p>
+        </div>
+      </div>
+
+      <!-- Countdown Timer -->
+      <div class="countdown-section">
+        <div class="countdown-grid">
+          <div class="timer-box">
+            <div class="timer-num" id="days">00</div>
+            <div class="timer-label">Days</div>
+          </div>
+          <div class="timer-box">
+            <div class="timer-num" id="hours">00</div>
+            <div class="timer-label">Hours</div>
+          </div>
+          <div class="timer-box">
+            <div class="timer-num" id="minutes">00</div>
+            <div class="timer-label">Minutes</div>
+          </div>
+          <div class="timer-box">
+            <div class="timer-num" id="seconds">00</div>
+            <div class="timer-label">Seconds</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Details Grid -->
+    <section class="info-grid">
+      <div class="info-card">
+        <div class="info-icon">📍</div>
+        <h3>The Location</h3>
+        <p>Trooditisa Picnic Site, nested under the shady pine trees of the Troodos mountains in Cyprus.</p>
+        <a href="https://maps.google.com/?q=Trooditisa+Picnic+Site" target="_blank" rel="noopener" class="maps-btn">
+          <span>🗺️ Open Google Maps</span>
+        </a>
+      </div>
+
+      <div class="info-card">
+        <div class="info-icon">🍢</div>
+        <h3>The Souvlakia</h3>
+        <p>MX is providing all the pork meat pre-skewered! We will be grilling hot souvlakia fresh on site.</p>
+      </div>
+
+      <div class="info-card">
+        <div class="info-icon">🎁</div>
+        <h3>The Gift Rule</h3>
+        <p>No physical gifts allowed! Your gift is bringing <strong>1 Big item</strong> OR <strong>2 Small items</strong> from the list below.</p>
+      </div>
+    </section>
+
+    <!-- RSVP Section -->
+    <section class="glass-panel" id="rsvp-section">
+      <h2 class="section-title"><span>✍️</span> RSVP & Guest Info</h2>
+      <p class="section-subtitle">Let us know you're coming so we can assign your items to bring!</p>
+
+      <form id="rsvp-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="guest-name">Your Full Name *</label>
+            <input type="text" id="guest-name" class="input-field" placeholder="e.g. Maria Xenophontos" required>
+          </div>
+
+          <div class="form-group">
+            <label for="guest-initials">Initials (For Item Checkboxes)</label>
+            <input type="text" id="guest-initials" class="input-field" placeholder="e.g. MX" maxlength="4">
+          </div>
+
+          <div class="form-group">
+            <label for="guest-attending">Are you attending? *</label>
+            <select id="guest-attending" class="select-field" required>
+              <option value="yes">Hell yeah! Count me in 🍢</option>
+              <option value="maybe">Maybe / Not sure yet 🤷‍♂️</option>
+              <option value="no">Can't make it 😢</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="guest-count">Total Guests (+1s)</label>
+            <input type="number" id="guest-count" class="input-field" min="1" max="10" value="1">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label for="guest-notes">Message / Dietary Notes (Optional)</label>
+          <textarea id="guest-notes" class="textarea-field" rows="2" placeholder="Any special notes for MX?"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <span>💾 Save My RSVP</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- Item Selection List Section -->
+    <section class="glass-panel" id="bring-list-section">
+      <h2 class="section-title"><span>🛒</span> What To Bring List</h2>
+      <p class="section-subtitle">Each guest should bring either <strong>1 BIG item</strong> OR <strong>2 SMALL items</strong>.</p>
+
+      <!-- Rule Banner Status -->
+      <div class="rule-banner" id="rule-banner">
+        <!-- Rendered dynamically by script.js -->
+      </div>
+
+      <!-- Filter Controls & Search -->
+      <div class="filter-bar">
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">All Items</button>
+          <button class="filter-tab" data-filter="big">🔥 Big Items (Pick 1)</button>
+          <button class="filter-tab" data-filter="small">🥗 Small Items (Pick 2)</button>
+          <button class="filter-tab" data-filter="needed">⏳ Still Needed</button>
+          <button class="filter-tab" data-filter="claimed">✅ Claimed</button>
+        </div>
+
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Search items...">
+        </div>
+      </div>
+
+      <!-- Items Grid -->
+      <div class="items-grid" id="items-container">
+        <!-- Rendered dynamically from items.json -->
+      </div>
+    </section>
+
+    <!-- Guest Roster Section -->
+    <section class="glass-panel" id="roster-section">
+      <h2 class="section-title"><span>👥</span> Guest Roster & Claims</h2>
+      <p class="section-subtitle">See who is coming and what everyone is bringing!</p>
+      
+      <div class="roster-grid" id="roster-container">
+        <!-- Rendered dynamically from rsvps.json -->
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Item Claim / Quantity Stepper Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title" id="modal-title">Item Claim</div>
+      <div class="modal-body" id="modal-body">
+        Select quantity you are bringing.
+      </div>
+
+      <div class="qty-stepper" id="qty-stepper-container" style="display: none;">
+        <button class="qty-btn" id="qty-minus">-</button>
+        <div class="qty-display" id="qty-display">1</div>
+        <button class="qty-btn" id="qty-plus">+</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="modal-confirm-btn">Confirm Claim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Host Admin / Export Modal -->
+  <div class="modal-overlay" id="admin-modal">
+    <div class="modal-box">
+      <div class="modal-title"><span>⚙️</span> Manage RSVP Data (For MX)</div>
+      <div class="modal-body">
+        <p>Since GitHub Pages hosts static files, all new guest submissions are saved locally in browser state.</p>
+        <p style="margin-top: 10px;">To save updated guest claims permanently into your repository's <code>rsvps.json</code> file, click below to download the updated JSON file and commit it to git!</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <button class="btn-primary" id="download-json-btn">
+          <span>📥 Download Updated rsvps.json</span>
+        </button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary close-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Host Floating Trigger Button -->
+  <button class="admin-badge-trigger" id="admin-trigger-btn">
+    ⚙️ Data & Export (Host)
+  </button>
+
+  <script src="script.js"></script>
+</body>
+</html>
