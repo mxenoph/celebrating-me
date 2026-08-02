@@ -1,9 +1,9 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (INSTANT CLOUD SYNC & GUEST ITEM SUMMARIES)
-   Updated:
-   - Detailed Item Summaries (with icons & names) displayed on every Guest Roster Card
-   - Instant Real-time Cloud Polling & BroadcastChannel sync across all windows
-   - Zero delays for Incognito users
+   CELEBRATING ME - JAVASCRIPT LOGIC (RELIABLE ZERO-FLICKER CLOUD SYNC)
+   Audited & Fixed:
+   - Fixed Ghosting Bug: Never wipes memory on 429 / network errors
+   - Uses local cache fallback so cards NEVER appear & disappear
+   - Smooth 6-second polling prevents API rate-limiting
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Verified Active Keyless Storage URL
   const CLOUD_STORAGE_URL = 'https://jsonblob.com/api/jsonBlob/019fc18d-4418-7f05-914b-572854103832';
-  const POLL_INTERVAL_SECONDS = 2; // Fast 2-second live polling
+  const POLL_INTERVAL_SECONDS = 6; // Smooth 6-second polling to prevent 429 rate limits
   const SECRET_PASSPHRASE = 'banana';
 
   // BroadcastChannel for instant cross-tab / incognito sync
@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
       syncChannel.onmessage = (event) => {
         if (event.data && Array.isArray(event.data.rsvps)) {
           rsvpsData = event.data.rsvps;
+          saveCachedRsvps(rsvpsData);
           renderItems();
           renderRoster();
           updateRuleProgressBanner();
@@ -86,8 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
     createForestEmbers();
     initCountdownTimer();
     loadUserFromLocalStorage();
+    loadCachedRsvps();
 
-    // Fetch items catalog first
+    // Fetch items catalog
     try {
       const itemsRes = await fetch(`items.json?t=${Date.now()}`);
       if (itemsRes.ok) {
@@ -127,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    // Start Real-Time Live Polling
+    // Start Live Polling
     setInterval(fetchLatestData, POLL_INTERVAL_SECONDS * 1000);
 
     // Modal Closes
@@ -135,6 +137,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => {
       document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     }));
+  }
+
+  // Cache helper to prevent flickering
+  function saveCachedRsvps(data) {
+    try {
+      localStorage.setItem('cookout_rsvps_cache', JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function loadCachedRsvps() {
+    try {
+      const cached = localStorage.getItem('cookout_rsvps_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          rsvpsData = parsed;
+        }
+      }
+    } catch (e) {}
   }
 
   // --- Green & Yellow Floating Embers ---
@@ -200,45 +221,31 @@ document.addEventListener('DOMContentLoaded', () => {
     updateRuleProgressBanner();
   }
 
-  // --- Fetch Latest Data (Instant Cloud Fetch) ---
+  // --- Fetch Latest Data (Zero-Flicker Error-Resistant Fetch) ---
   async function fetchLatestData() {
     try {
-      let remoteRsvps = null;
+      const bRes = await fetch(`${CLOUD_STORAGE_URL}?t=${Date.now()}`, {
+        headers: { 'Accept': 'application/json' }
+      });
 
-      // 1. Fetch from Verified Keyless Storage Endpoint
-      try {
-        const bRes = await fetch(`${CLOUD_STORAGE_URL}?t=${Date.now()}`, {
-          headers: { 'Accept': 'application/json' }
-        });
-        if (bRes.ok) {
-          const payload = await bRes.json();
-          if (Array.isArray(payload)) {
-            remoteRsvps = payload;
+      if (bRes.ok) {
+        const payload = await bRes.json();
+        if (Array.isArray(payload)) {
+          rsvpsData = payload;
+          saveCachedRsvps(rsvpsData);
+
+          if (currentUser.name && rsvpsData.length > 0) {
+            syncCurrentUserWithRsvps();
           }
-        }
-      } catch (e) {}
 
-      // Fallback: Static rsvps.json
-      if (remoteRsvps === null) {
-        const rsvpsRes = await fetch(`rsvps.json?t=${Date.now()}`);
-        if (rsvpsRes.ok) {
-          remoteRsvps = await rsvpsRes.json();
+          renderItems();
+          renderRoster();
+          updateRuleProgressBanner();
         }
       }
-
-      if (remoteRsvps !== null && Array.isArray(remoteRsvps)) {
-        rsvpsData = remoteRsvps;
-
-        if (currentUser.name && rsvpsData.length > 0) {
-          syncCurrentUserWithRsvps();
-        }
-
-        renderItems();
-        renderRoster();
-        updateRuleProgressBanner();
-      }
+      // CRITICAL FIX: If fetch fails (429 or network error), DO NOT overwrite rsvpsData! Keep existing memory!
     } catch (err) {
-      console.warn('Error fetching live data:', err);
+      console.warn('Error fetching live data (retaining existing view):', err);
     }
   }
 
@@ -248,6 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Merge current user directly into in-memory rsvpsData
     rsvpsData = mergeRsvpsArrays(rsvpsData, currentUser);
+    saveCachedRsvps(rsvpsData);
 
     renderItems();
     renderRoster();
@@ -312,9 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
         claimedItems: []
       };
 
-      // 2. Clear browser local storage
+      // 2. Clear browser local storage & cache
       localStorage.removeItem('celebrating_me_user');
       localStorage.removeItem('mx_cookout_user');
+      localStorage.removeItem('cookout_rsvps_cache');
 
       // 3. Reset form inputs & notices
       if (rsvpForm) rsvpForm.reset();
