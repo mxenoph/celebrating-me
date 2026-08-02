@@ -1,7 +1,6 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC
-   Handles dynamic items.json/rsvps.json loading, pre-RSVP checking,
-   quantity counters, initial badges, rule validation, and persistence.
+   CELEBRATING ME - JAVASCRIPT LOGIC (JSONBIN.IO REAL-TIME GUEST SYNC)
+   Seamless Live Multi-User Sync using JSONBin.io (Zero login for guests!)
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,8 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
     notes: '',
     claimedItems: [] // array of { itemId, quantity }
   };
+
+  // JSONBin.io Live Sync Settings
+  let syncConfig = {
+    binId: '',       // e.g. '66ab1234567890...'
+    apiKey: '',      // e.g. '$2a$10$...' (Master Key or Access Key)
+    pollIntervalSeconds: 5
+  };
+
   let activeItemForModal = null;
   let selectedModalQty = 1;
+  let isSyncing = false;
 
   // --- DOM Elements ---
   const countdownDays = document.getElementById('days');
@@ -53,36 +61,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminModal = document.getElementById('admin-modal');
   const downloadJsonBtn = document.getElementById('download-json-btn');
 
-  // --- Initial Data Load ---
+  // JSONBin Settings Inputs
+  const jsonbinBinIdInput = document.getElementById('jsonbin-bin-id');
+  const jsonbinApiKeyInput = document.getElementById('jsonbin-api-key');
+  const saveSyncConfigBtn = document.getElementById('save-sync-config-btn');
+  const syncStatusBanner = document.getElementById('sync-status-banner');
+
+  // --- Initial Setup ---
   initApp();
 
   async function initApp() {
-    createEmberParticles();
+    createForestEmbers();
     initCountdownTimer();
     loadUserFromLocalStorage();
+    loadSyncConfigFromLocalStorage();
 
-    try {
-      // Load items.json
-      const itemsRes = await fetch('items.json');
-      if (itemsRes.ok) {
-        itemsData = await itemsRes.json();
-      } else {
-        console.warn('Could not fetch items.json, using fallback data');
-      }
+    // Fetch Initial Data
+    await fetchLatestData();
 
-      // Load rsvps.json
-      const rsvpsRes = await fetch('rsvps.json');
-      if (rsvpsRes.ok) {
-        rsvpsData = await rsvpsRes.json();
-      }
-    } catch (err) {
-      console.error('Error fetching JSON data files:', err);
-    }
-
-    // Merge currentUser claims with rsvpsData if saved
-    syncCurrentUserWithRsvps();
-    
-    // Auto fill initials if name is typed
+    // Auto-fill initials if name is typed
     guestNameInput.addEventListener('input', (e) => {
       const name = e.target.value.trim();
       currentUser.name = name;
@@ -118,34 +115,184 @@ document.addEventListener('DOMContentLoaded', () => {
     renderItems();
     renderRoster();
     updateRuleProgressBanner();
+    updateSyncStatusUI();
 
-    // Admin & Export Event Listeners
+    // Start Live Polling for multi-user real-time sync
+    setInterval(fetchLatestData, syncConfig.pollIntervalSeconds * 1000);
+
+    // Sync Settings Listeners
     if (adminTriggerBtn) {
       adminTriggerBtn.addEventListener('click', () => {
         adminModal.classList.add('active');
       });
     }
 
+    if (saveSyncConfigBtn) {
+      saveSyncConfigBtn.addEventListener('click', handleSaveSyncConfig);
+    }
+
     if (downloadJsonBtn) {
       downloadJsonBtn.addEventListener('click', downloadUpdatedRsvpsJson);
     }
 
-    // Modal Close
+    // Modal Closes
     modalCancelBtn.addEventListener('click', closeModal);
     document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => {
       document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     }));
   }
 
-  // --- Helper: Initials Extractor ---
-  function getInitials(name) {
-    if (!name) return '';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  // --- Green & Yellow Floating Embers ---
+  function createForestEmbers() {
+    const container = document.getElementById('particles-container');
+    if (!container) return;
+
+    const colors = ['pine-green', 'forest-moss', 'golden-yellow', 'warm-amber'];
+
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      const chosenColor = colors[Math.floor(Math.random() * colors.length)];
+      p.className = `particle ${chosenColor}`;
+      p.style.left = `${Math.random() * 100}%`;
+      p.style.animationDuration = `${5 + Math.random() * 7}s`;
+      p.style.animationDelay = `${Math.random() * 6}s`;
+      const size = 4 + Math.random() * 5;
+      p.style.width = `${size}px`;
+      p.style.height = `${size}px`;
+      container.appendChild(p);
+    }
   }
 
-  // --- LocalStorage Syncing ---
+  // --- Fetch Latest Data (Tries JSONBin.io first, fallback to local rsvps.json) ---
+  async function fetchLatestData() {
+    try {
+      // 1. Fetch items.json
+      const itemsRes = await fetch(`items.json?t=${Date.now()}`);
+      if (itemsRes.ok) {
+        itemsData = await itemsRes.json();
+      }
+
+      // 2. Fetch live rsvps from JSONBin.io if binId is configured
+      let remoteRsvps = null;
+
+      if (syncConfig.binId) {
+        const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`;
+        const headers = {};
+        if (syncConfig.apiKey) {
+          headers['X-Master-Key'] = syncConfig.apiKey;
+        }
+
+        const binRes = await fetch(binUrl, { headers });
+        if (binRes.ok) {
+          const jsonBinPayload = await binRes.json();
+          remoteRsvps = jsonBinPayload.record;
+        }
+      }
+
+      // Fallback to local rsvps.json
+      if (!remoteRsvps) {
+        const rsvpsRes = await fetch(`rsvps.json?t=${Date.now()}`);
+        if (rsvpsRes.ok) {
+          remoteRsvps = await rsvpsRes.json();
+        }
+      }
+
+      if (remoteRsvps && Array.isArray(remoteRsvps)) {
+        rsvpsData = remoteRsvps;
+        syncCurrentUserWithRsvps();
+        renderItems();
+        renderRoster();
+        updateRuleProgressBanner();
+      }
+    } catch (err) {
+      console.warn('Error fetching live data:', err);
+    }
+  }
+
+  // --- Push Update to JSONBin.io (Live Guest Claiming) ---
+  async function persistRsvpsToJsonBin() {
+    saveUserToLocalStorage();
+
+    if (!syncConfig.binId) {
+      // If binId not configured yet, save in local storage & local array
+      syncCurrentUserWithRsvps();
+      renderItems();
+      renderRoster();
+      return;
+    }
+
+    if (isSyncing) return;
+    isSyncing = true;
+
+    try {
+      // Re-fetch latest bin data right before writing to prevent overwrites
+      const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}`;
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (syncConfig.apiKey) {
+        headers['X-Master-Key'] = syncConfig.apiKey;
+      }
+
+      const getRes = await fetch(`${binUrl}/latest`, { headers });
+      let latestRemote = [];
+      if (getRes.ok) {
+        const payload = await getRes.json();
+        latestRemote = payload.record || [];
+      }
+
+      // Merge current user RSVP
+      const mergedRsvps = mergeRsvpsArrays(latestRemote, currentUser);
+      rsvpsData = mergedRsvps;
+
+      // PUT update to JSONBin
+      const putRes = await fetch(binUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(mergedRsvps)
+      });
+
+      if (putRes.ok) {
+        showToast(`✅ Saved live to Cloud!`);
+        updateSyncStatusUI(true);
+      } else {
+        console.error('JSONBin update error:', putRes.statusText);
+      }
+    } catch (e) {
+      console.error('Failed to sync to JSONBin', e);
+    } finally {
+      isSyncing = false;
+    }
+  }
+
+  // Helper: Merges user RSVP safely into remote array
+  function mergeRsvpsArrays(remoteList, userObj) {
+    if (!userObj.name) return remoteList;
+
+    const copy = [...remoteList];
+    const index = copy.findIndex(r => r.name.toLowerCase() === userObj.name.toLowerCase());
+
+    const updatedUserEntry = {
+      id: index !== -1 ? copy[index].id : 'rsvp_' + Date.now(),
+      name: userObj.name,
+      initials: userObj.initials || getInitials(userObj.name),
+      attending: userObj.attending || 'yes',
+      guestsCount: userObj.guestsCount || 1,
+      notes: userObj.notes || '',
+      claimedItems: userObj.claimedItems || [],
+      timestamp: new Date().toISOString()
+    };
+
+    if (index !== -1) {
+      copy[index] = updatedUserEntry;
+    } else {
+      copy.push(updatedUserEntry);
+    }
+
+    return copy;
+  }
+
+  // --- Local Storage Helpers ---
   function loadUserFromLocalStorage() {
     const saved = localStorage.getItem('celebrating_me_user') || localStorage.getItem('mx_cookout_user');
     if (saved) {
@@ -169,44 +316,57 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('celebrating_me_user', JSON.stringify(currentUser));
   }
 
-  function syncCurrentUserWithRsvps() {
-    if (!currentUser.name) return;
-    const existingIndex = rsvpsData.findIndex(r => r.name.toLowerCase() === currentUser.name.toLowerCase());
-    if (existingIndex !== -1) {
-      // Merge claims from remote JSON if available
-      rsvpsData[existingIndex] = {
-        ...rsvpsData[existingIndex],
-        ...currentUser,
-        initials: currentUser.initials || getInitials(currentUser.name)
-      };
-    } else {
-      rsvpsData.push({
-        id: 'rsvp_' + Date.now(),
-        ...currentUser,
-        timestamp: new Date().toISOString()
-      });
+  function loadSyncConfigFromLocalStorage() {
+    const saved = localStorage.getItem('celebrating_me_sync_config');
+    if (saved) {
+      try {
+        syncConfig = { ...syncConfig, ...JSON.parse(saved) };
+        if (jsonbinBinIdInput) jsonbinBinIdInput.value = syncConfig.binId || '';
+        if (jsonbinApiKeyInput) jsonbinApiKeyInput.value = syncConfig.apiKey || '';
+      } catch (e) {}
     }
   }
 
-  // --- Particle Animation ---
-  function createEmberParticles() {
-    const container = document.getElementById('particles-container');
-    if (!container) return;
-    for (let i = 0; i < 25; i++) {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      p.style.left = `${Math.random() * 100}%`;
-      p.style.animationDuration = `${4 + Math.random() * 6}s`;
-      p.style.animationDelay = `${Math.random() * 5}s`;
-      p.style.width = `${3 + Math.random() * 4}px`;
-      p.style.height = p.style.width;
-      container.appendChild(p);
+  function handleSaveSyncConfig() {
+    syncConfig.binId = jsonbinBinIdInput.value.trim();
+    syncConfig.apiKey = jsonbinApiKeyInput.value.trim();
+
+    localStorage.setItem('celebrating_me_sync_config', JSON.stringify(syncConfig));
+    updateSyncStatusUI();
+    showToast('JSONBin live settings saved!');
+    closeModal();
+    fetchLatestData();
+  }
+
+  function updateSyncStatusUI(isLive = false) {
+    if (!syncStatusBanner) return;
+    if (syncConfig.binId) {
+      syncStatusBanner.innerHTML = `
+        <span class="sync-dot"></span> 
+        <span>Live Synced via JSONBin.io (Bin ID: ${syncConfig.binId.substring(0, 8)}...)</span>
+      `;
+    } else {
+      syncStatusBanner.innerHTML = `
+        <span style="color: var(--accent-amber);">ℹ️ Local Storage Mode (Host: Click settings to link JSONBin for real-time guest sync)</span>
+      `;
     }
+  }
+
+  function syncCurrentUserWithRsvps() {
+    if (!currentUser.name) return;
+    rsvpsData = mergeRsvpsArrays(rsvpsData, currentUser);
+  }
+
+  // --- Initials Extractor ---
+  function getInitials(name) {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
   // --- Countdown Timer ---
   function initCountdownTimer() {
-    // Saturday August 8, 2026 11:30 AM
     const targetDate = new Date('2026-08-08T11:30:00+03:00').getTime();
 
     function update() {
@@ -280,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
-  // --- Render Item List Cards ---
+  // --- Render 3-Column Items Grid ---
   function renderItems() {
     if (!itemsData.length) return;
 
@@ -288,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchQuery = searchInput.value.toLowerCase().trim();
 
     // Compute total claims per item across all RSVPs
-    const itemClaimsMap = {}; // itemId -> { totalClaimed: number, claimants: [{ name, initials, quantity }] }
+    const itemClaimsMap = {};
 
     rsvpsData.forEach(rsvp => {
       if (rsvp.claimedItems && Array.isArray(rsvp.claimedItems)) {
@@ -308,7 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filter items
     const filtered = itemsData.filter(item => {
-      // Category filter
       if (activeFilter === 'big' && item.category !== 'big') return false;
       if (activeFilter === 'small' && item.category !== 'small') return false;
       
@@ -318,7 +477,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activeFilter === 'claimed' && !isFullyClaimed) return false;
       if (activeFilter === 'needed' && isFullyClaimed) return false;
 
-      // Search query
       if (searchQuery) {
         const matchName = item.name.toLowerCase().includes(searchQuery);
         const matchNote = item.note.toLowerCase().includes(searchQuery);
@@ -334,15 +492,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const remainingNeeded = Math.max(0, item.totalNeeded - totalClaimed);
       const isFullyClaimed = totalClaimed >= item.totalNeeded;
 
-      // Check if current user claimed this item
       const userClaim = currentUser.claimedItems.find(c => c.itemId === item.id);
       const userClaimQty = userClaim ? userClaim.quantity : 0;
       const isChecked = userClaimQty > 0;
 
-      // Initials badge to show on checkbox
       const displayInitials = isChecked ? (currentUser.initials || getInitials(currentUser.name) || '✓') : '';
 
-      // Claimants breakdown tags
       const claimantsTags = claimsInfo.claimants.map(c => {
         const isMe = currentUser.name && c.name.toLowerCase() === currentUser.name.toLowerCase();
         return `<span class="claimant-tag ${isMe ? 'my-claim' : ''}">${c.initials}: ${c.quantity}</span>`;
@@ -391,11 +546,9 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }).join('');
 
-    // Attach click events
     attachItemEventListeners();
   }
 
-  // --- Attach Item Event Listeners ---
   function attachItemEventListeners() {
     document.querySelectorAll('.checkbox-custom, .btn-claim-qty').forEach(element => {
       element.addEventListener('click', (e) => {
@@ -406,16 +559,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Pre-RSVP Gate & Claim Trigger ---
   function handleItemClick(itemId) {
     const name = guestNameInput.value.trim();
     if (!name) {
-      // Prompt guest to RSVP first
       showPreRsvpModal();
       return;
     }
 
-    // Set currentUser name & initials
     currentUser.name = name;
     currentUser.initials = guestInitialsInput.value.trim().toUpperCase() || getInitials(name);
 
@@ -425,7 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
     openQuantityModal(item);
   }
 
-  // --- Pre-RSVP Modal ---
   function showPreRsvpModal() {
     modalTitle.innerHTML = `⚠️ Please RSVP First!`;
     modalBody.innerHTML = `
@@ -443,11 +592,9 @@ document.addEventListener('DOMContentLoaded', () => {
     modalOverlay.classList.add('active');
   }
 
-  // --- Open Quantity Selection Modal ---
   function openQuantityModal(item) {
     activeItemForModal = item;
 
-    // Calculate current claimed by others
     let claimedByOthers = 0;
     rsvpsData.forEach(r => {
       if (r.name.toLowerCase() !== currentUser.name.toLowerCase() && r.claimedItems) {
@@ -457,8 +604,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const maxAvailable = Math.max(0, item.totalNeeded - claimedByOthers);
-
-    // Existing user claim
     const existingClaim = currentUser.claimedItems.find(c => c.itemId === item.id);
     selectedModalQty = existingClaim ? existingClaim.quantity : (maxAvailable > 0 ? 1 : 0);
 
@@ -466,8 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalBody.innerHTML = `
       <p>How many <strong>${item.name}</strong> are you bringing?</p>
       <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
-        Total needed for cookout: <strong>${item.totalNeeded} ${item.unit}</strong><br>
-        Claimed by others: <strong>${claimedByOthers}</strong> | Available to claim: <strong>${maxAvailable}</strong>
+        Total needed: <strong>${item.totalNeeded} ${item.unit}</strong> | Claimed by others: <strong>${claimedByOthers}</strong> | Available: <strong>${maxAvailable}</strong>
       </div>
     `;
 
@@ -502,7 +646,6 @@ document.addEventListener('DOMContentLoaded', () => {
     adminModal.classList.remove('active');
   }
 
-  // --- Save Item Claim ---
   function saveItemClaim(itemId, quantity) {
     const existingIndex = currentUser.claimedItems.findIndex(c => c.itemId === itemId);
 
@@ -521,10 +664,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderItems();
     renderRoster();
     updateRuleProgressBanner();
-    showToast(`Updated your claim for item!`);
+
+    // Trigger JSONBin cloud persistence
+    persistRsvpsToJsonBin();
   }
 
-  // --- RSVP Submission ---
   function handleRsvpSubmit(e) {
     e.preventDefault();
 
@@ -547,10 +691,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
+    // Trigger JSONBin cloud persistence
+    persistRsvpsToJsonBin();
     showToast(`RSVP Saved! Thank you, ${currentUser.name}! 🎉`);
   }
 
-  // --- Render Guest Roster ---
   function renderRoster() {
     if (!rosterContainer) return;
 
@@ -569,14 +714,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="roster-info">
             <h4>${rsvp.name} (${rsvp.guestsCount} guest${rsvp.guestsCount > 1 ? 's' : ''})</h4>
             <p>${attendingBadge} • ${itemsCount} item(s) bringing</p>
-            ${rsvp.notes ? `<p style="font-style: italic; color: #cbd5e1; margin-top: 4px;">"${rsvp.notes}"</p>` : ''}
+            ${rsvp.notes ? `<p style="font-style: italic; color: var(--text-muted); margin-top: 4px;">"${rsvp.notes}"</p>` : ''}
           </div>
         </div>
       `;
     }).join('');
   }
 
-  // --- Download Updated rsvps.json ---
   function downloadUpdatedRsvpsJson() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rsvpsData, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -588,7 +732,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast("Downloaded rsvps.json! Replace file in your repository.");
   }
 
-  // --- Toast Notifications ---
   function showToast(message) {
     const toastContainer = document.getElementById('toast-container');
     if (!toastContainer) return;

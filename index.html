@@ -9,7 +9,7 @@
 </head>
 <body>
 
-  <!-- Floating Ambient Embers -->
+  <!-- Floating Green & Yellow Forest Embers -->
   <div class="particles-container" id="particles-container"></div>
 
   <!-- Toast Notifications -->
@@ -29,6 +29,11 @@
         <span class="event-pill">📅 Saturday, August 8th</span>
         <span class="event-pill">📍 Trooditisa Picnic Site</span>
         <span class="event-pill">🍢 Souvlakia Feast</span>
+      </div>
+
+      <!-- Live Sync Status Indicator -->
+      <div class="sync-indicator" id="sync-status-banner">
+        <!-- Rendered dynamically by script.js -->
       </div>
 
       <!-- Intro Story Card -->
@@ -165,7 +170,7 @@
         </div>
       </div>
 
-      <!-- Items Grid -->
+      <!-- Items Grid (3 Columns on Desktop) -->
       <div class="items-grid" id="items-container">
         <!-- Rendered dynamically from items.json -->
       </div>
@@ -204,22 +209,41 @@
     </div>
   </div>
 
-  <!-- Host Admin / Export Modal -->
+  <!-- Host Live Sync & JSONBin Settings Modal -->
   <div class="modal-overlay" id="admin-modal">
     <div class="modal-box">
-      <div class="modal-title"><span>⚙️</span> Manage RSVP Data (For MX)</div>
+      <div class="modal-title"><span>⚡</span> Live JSONBin.io Cloud Sync</div>
       <div class="modal-body">
-        <p>Since GitHub Pages hosts static files, all new guest submissions are saved locally in browser state.</p>
-        <p style="margin-top: 10px;">To save updated guest claims permanently into your repository's <code>rsvps.json</code> file, click below to download the updated JSON file and commit it to git!</p>
-      </div>
+        <p>Enable <strong>instant real-time guest claiming with zero logins or tokens needed for guests</strong>:</p>
+        
+        <div style="margin: 16px 0; display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-group">
+            <label for="jsonbin-bin-id">JSONBin Bin ID *</label>
+            <input type="text" id="jsonbin-bin-id" class="input-field" placeholder="e.g. 66ab1234567890...">
+          </div>
 
-      <div style="margin-bottom: 20px;">
-        <button class="btn-primary" id="download-json-btn">
+          <div class="form-group">
+            <label for="jsonbin-api-key">JSONBin Master Key (Optional for private bins)</label>
+            <input type="password" id="jsonbin-api-key" class="input-field" placeholder="$2a$10$...">
+            <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">
+              From JSONBin.io dashboard > API Keys.
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="save-sync-config-btn" style="margin-bottom: 12px;">
+          <span>💾 Save & Enable Live Guest Sync</span>
+        </button>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-light); margin: 16px 0;">
+
+        <p style="font-size: 0.9rem;">Or download the current JSON data to commit manually:</p>
+        <button class="btn-secondary" id="download-json-btn" style="margin-top: 8px; width: 100%;">
           <span>📥 Download Updated rsvps.json</span>
         </button>
       </div>
 
-      <div class="modal-actions">
+      <div class="modal-actions" style="margin-top: 16px;">
         <button class="btn-secondary close-modal">Close</button>
       </div>
     </div>
@@ -227,7 +251,7 @@
 
   <!-- Host Floating Trigger Button -->
   <button class="admin-badge-trigger" id="admin-trigger-btn">
-    ⚙️ Data & Export (Host)
+    ⚡ Live Sync & Settings
   </button>
 
   <script src="script.js"></script>
