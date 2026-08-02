@@ -1,10 +1,11 @@
 /* ==========================================================================
-   CELEBRATING ME - LIGHT & FRESH THEME (TWO-STAGE CLAIM SYSTEM)
-   Includes:
+   CELEBRATING ME - LIGHT & FRESH THEME (TWO-STAGE CLAIMS & PASSPHRASE RESET)
+   Features:
    - Green/Amber Left Border for Available Items
    - Prominent Selection Highlights for Current User
-   - Pending / Temporary Hold vs. Confirmed Claim Badges
-   - Full Width 3-Column Items Grid
+   - Two-Stage System: Pending/Temporary hold vs Confirmed claim
+   - Guest Name Matching & Re-editing
+   - Secret Passphrase Reset Button ("banana")
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
@@ -367,6 +368,20 @@ body {
   margin-bottom: 24px;
 }
 
+/* Returning Guest Welcome Banner */
+.returning-guest-banner {
+  background: rgba(46, 139, 87, 0.1);
+  border: 1px solid rgba(46, 139, 87, 0.3);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  margin-bottom: 18px;
+  font-size: 0.95rem;
+  color: var(--accent-pine);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 /* Panels */
 .glass-panel {
   background: var(--bg-white);
@@ -574,9 +589,7 @@ body {
   color: var(--text-dim);
 }
 
-/* ==========================================================================
-   ITEMS GRID - 3 COLUMNS & TWO-STAGE SELECTION STYLING
-   ========================================================================== */
+/* Items Grid & Cards */
 .items-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -601,7 +614,6 @@ body {
   box-shadow: var(--shadow-hover);
 }
 
-/* Base Available Items Left Borders */
 .item-card.category-big {
   border-left: 5px solid var(--accent-amber);
 }
@@ -610,7 +622,7 @@ body {
   border-left: 5px solid var(--accent-pine);
 }
 
-/* Stage 1: Temporary Selection by Current User (Prominent Amber Glow) */
+/* User Selections */
 .item-card.user-pending {
   border: 2px solid var(--accent-amber) !important;
   border-left: 6px solid var(--accent-amber) !important;
@@ -618,7 +630,6 @@ body {
   background: #fffdfa;
 }
 
-/* Stage 2: Confirmed Claim by Current User (Prominent Green Glow) */
 .item-card.user-confirmed {
   border: 2px solid var(--accent-pine) !important;
   border-left: 6px solid var(--accent-pine) !important;
@@ -626,7 +637,6 @@ body {
   background: #f4faf6;
 }
 
-/* Pending hold by another user */
 .item-card.has-pending-others {
   border-style: dashed;
   border-color: rgba(217, 119, 6, 0.4);
@@ -645,7 +655,7 @@ body {
   margin-bottom: 12px;
 }
 
-/* Custom Checkbox & Initials Badge */
+/* Checkbox & Initials Badge */
 .checkbox-wrapper {
   position: relative;
   display: inline-block;
@@ -750,7 +760,6 @@ body {
   flex-wrap: wrap;
 }
 
-/* Counter & Claim Status Badges */
 .counter-badge {
   font-size: 0.85rem;
   font-weight: 700;
@@ -968,6 +977,32 @@ body {
   text-align: center;
 }
 
+/* Footer Secret Reset Button */
+.reset-footer {
+  text-align: center;
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-light);
+}
+
+.btn-reset-danger {
+  padding: 8px 20px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-reset-danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+}
+
 /* Toast Notifications */
 .toast-container {
   position: fixed;
@@ -1001,7 +1036,7 @@ body {
   }
 }
 
-/* Responsive Grid Overrides */
+/* Responsive Overrides */
 @media (max-width: 1100px) {
   .items-grid {
     grid-template-columns: repeat(2, 1fr);

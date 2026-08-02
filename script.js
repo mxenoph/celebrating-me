@@ -1,10 +1,10 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (TWO-STAGE CLAIMS & CLOUD SYNC)
+   CELEBRATING ME - JAVASCRIPT LOGIC (WITH GUEST MATCHING & PASSPHRASE RESET)
    Features:
-   - Available items: Green / Amber left border
-   - Prominent Selection: Highlighted glowing border for user's selections
-   - Two-Stage System: Pending/Temporary hold vs Confirmed claim
-   - Real-time Sync & Polling for multi-user/incognito updates
+   - Returning Guest Matching & Editing (by name)
+   - Two-Stage Claims (Pending vs Confirmed)
+   - Secret Reset Button ("banana")
+   - Real-time Cloud Polling & Multi-User Sync
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const PUBLIC_BIN_ID = '6a6ee55ef5f4af5e29e03b69';
   const POLL_INTERVAL_SECONDS = 3;
+  const SECRET_PASSPHRASE = 'banana';
 
   let activeItemForModal = null;
   let selectedModalQty = 1;
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const guestAttendingSelect = document.getElementById('guest-attending');
   const guestCountInput = document.getElementById('guest-count');
   const guestNotesInput = document.getElementById('guest-notes');
+  const returningGuestNotice = document.getElementById('returning-guest-notice');
 
   const ruleBanner = document.getElementById('rule-banner');
   const itemsContainer = document.getElementById('items-container');
@@ -57,6 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const qtyMinusBtn = document.getElementById('qty-minus');
   const qtyPlusBtn = document.getElementById('qty-plus');
 
+  const secretResetBtn = document.getElementById('secret-reset-btn');
+
   // --- Initial Setup ---
   initApp();
 
@@ -68,16 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch Initial Data
     await fetchLatestData();
 
-    // Auto-fill initials if name is typed
-    guestNameInput.addEventListener('input', (e) => {
-      const name = e.target.value.trim();
-      currentUser.name = name;
-      if (!guestInitialsInput.dataset.userEdited) {
-        currentUser.initials = getInitials(name);
-        guestInitialsInput.value = currentUser.initials;
-      }
-      updateRuleProgressBanner();
-    });
+    // Name input listener (Guest Matching & Re-editing)
+    guestNameInput.addEventListener('input', handleNameInputChange);
 
     guestInitialsInput.addEventListener('input', (e) => {
       guestInitialsInput.dataset.userEdited = 'true';
@@ -85,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderItems();
     });
 
-    // RSVP Submit (Confirms pending selections!)
+    // RSVP Submit (Confirms & Updates RSVP)
     rsvpForm.addEventListener('submit', handleRsvpSubmit);
 
     // Filter Tabs
@@ -99,6 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Search Input
     searchInput.addEventListener('input', renderItems);
+
+    // Secret Reset Button ("banana")
+    if (secretResetBtn) {
+      secretResetBtn.addEventListener('click', handleSecretReset);
+    }
 
     // Initial Renders
     renderItems();
@@ -136,6 +137,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- Guest Matching & Re-Editing Logic ---
+  function handleNameInputChange(e) {
+    const inputName = e.target.value.trim();
+    currentUser.name = inputName;
+
+    if (!inputName) {
+      returningGuestNotice.innerHTML = '';
+      return;
+    }
+
+    // Check if guest exists in rsvpsData
+    const existingRsvp = rsvpsData.find(r => r.name && r.name.toLowerCase() === inputName.toLowerCase());
+
+    if (existingRsvp) {
+      // Auto-populate form fields from existing record
+      currentUser.initials = existingRsvp.initials || getInitials(inputName);
+      currentUser.attending = existingRsvp.attending || 'yes';
+      currentUser.guestsCount = existingRsvp.guestsCount || 1;
+      currentUser.notes = existingRsvp.notes || '';
+      currentUser.claimedItems = existingRsvp.claimedItems ? [...existingRsvp.claimedItems] : [];
+
+      guestInitialsInput.value = currentUser.initials;
+      guestAttendingSelect.value = currentUser.attending;
+      guestCountInput.value = currentUser.guestsCount;
+      guestNotesInput.value = currentUser.notes;
+
+      returningGuestNotice.innerHTML = `
+        <div class="returning-guest-banner">
+          <span>👋 Welcome back, <strong>${existingRsvp.name}</strong>! Your previously saved RSVP and item claims have been loaded. You can modify your choices below.</span>
+        </div>
+      `;
+    } else {
+      returningGuestNotice.innerHTML = '';
+      if (!guestInitialsInput.dataset.userEdited) {
+        currentUser.initials = getInitials(inputName);
+        guestInitialsInput.value = currentUser.initials;
+      }
+    }
+
+    renderItems();
+    updateRuleProgressBanner();
+  }
+
   // --- Fetch Latest Data (Tries Cloud Bins first, fallback to local rsvps.json) ---
   async function fetchLatestData() {
     try {
@@ -149,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let remoteRsvps = null;
 
       if (PUBLIC_BIN_ID) {
-        // Try JSONBin
         try {
           const binUrl = `https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}/latest`;
           const binRes = await fetch(binUrl);
@@ -159,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (e) {}
 
-        // Keyless storage backup if JSONBin not reachable
+        // Keyless storage backup if needed
         if (!remoteRsvps) {
           try {
             const backupUrl = `https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`;
@@ -181,7 +224,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (remoteRsvps && Array.isArray(remoteRsvps)) {
         rsvpsData = remoteRsvps;
-        syncCurrentUserWithRsvps();
+
+        // If current user is typing/editing, match and refresh claims
+        if (currentUser.name) {
+          const matched = rsvpsData.find(r => r.name && r.name.toLowerCase() === currentUser.name.toLowerCase());
+          if (matched && matched.claimedItems) {
+            // Keep local pending items, update confirmed ones
+            syncCurrentUserWithRsvps();
+          }
+        }
+
         renderItems();
         renderRoster();
         updateRuleProgressBanner();
@@ -206,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
     isSyncing = true;
 
     try {
-      // Fetch latest array right before writing to prevent overwrites
       let latestRemote = [...rsvpsData];
 
       try {
@@ -221,14 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (e) {}
 
-      // Merge current user RSVP & selections
+      // Merge current user RSVP
       const mergedRsvps = mergeRsvpsArrays(latestRemote, currentUser);
       rsvpsData = mergedRsvps;
 
       // PUT update to Cloud
       let writeSuccess = false;
 
-      // Try PUT to JSONBin
       try {
         const putRes = await fetch(`https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}`, {
           method: 'PUT',
@@ -241,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (putRes.ok) writeSuccess = true;
       } catch (e) {}
 
-      // Keyless backup if needed
       if (!writeSuccess) {
         try {
           const altRes = await fetch(`https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`, {
@@ -262,6 +311,53 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to sync to Cloud', e);
     } finally {
       isSyncing = false;
+    }
+  }
+
+  // --- Secret Passphrase Reset ("banana") ---
+  async function handleSecretReset() {
+    const inputPassphrase = prompt('⚠️ PASSPHRASE PROTECTED:\nEnter passphrase to reset all RSVPs and clear all selections:');
+
+    if (!inputPassphrase) return;
+
+    if (inputPassphrase.trim().toLowerCase() === SECRET_PASSPHRASE) {
+      if (!confirm('Are you 100% sure you want to clear ALL guest RSVPs and item claims?')) return;
+
+      // Clear local memory & storage
+      rsvpsData = [];
+      currentUser.claimedItems = [];
+      currentUser.name = '';
+      currentUser.initials = '';
+      currentUser.notes = '';
+      localStorage.removeItem('celebrating_me_user');
+      localStorage.removeItem('mx_cookout_user');
+
+      // Clear form inputs
+      rsvpForm.reset();
+      returningGuestNotice.innerHTML = '';
+
+      // Commit empty array [] to Cloud Bin
+      try {
+        await fetch(`https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([])
+        });
+
+        await fetch(`https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([])
+        });
+      } catch (e) {}
+
+      renderItems();
+      renderRoster();
+      updateRuleProgressBanner();
+      alert('🧹 All RSVPs & item claims have been completely reset!');
+      showToast('🧹 All selections cleared!');
+    } else {
+      alert('❌ Incorrect passphrase! Access denied.');
     }
   }
 
@@ -290,43 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return copy;
-  }
-
-  // --- Local Storage Helpers ---
-  function loadUserFromLocalStorage() {
-    const saved = localStorage.getItem('celebrating_me_user') || localStorage.getItem('mx_cookout_user');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        currentUser = { ...currentUser, ...parsed };
-        if (currentUser.name) {
-          guestNameInput.value = currentUser.name;
-          guestInitialsInput.value = currentUser.initials || getInitials(currentUser.name);
-          guestAttendingSelect.value = currentUser.attending || 'yes';
-          guestCountInput.value = currentUser.guestsCount || 1;
-          guestNotesInput.value = currentUser.notes || '';
-        }
-      } catch (e) {
-        console.error('LocalStorage parse error', e);
-      }
-    }
-  }
-
-  function saveUserToLocalStorage() {
-    localStorage.setItem('celebrating_me_user', JSON.stringify(currentUser));
-  }
-
-  function syncCurrentUserWithRsvps() {
-    if (!currentUser.name) return;
-    rsvpsData = mergeRsvpsArrays(rsvpsData, currentUser);
-  }
-
-  // --- Initials Extractor ---
-  function getInitials(name) {
-    if (!name) return '';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
   // --- Countdown Timer ---
@@ -404,15 +463,14 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
-  // --- Render 3-Column Items Grid with Two-Stage Selections ---
+  // --- Render 3-Column Items Grid ---
   function renderItems() {
     if (!itemsData.length) return;
 
     const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
     const searchQuery = searchInput.value.toLowerCase().trim();
 
-    // Map total claims per item across all RSVPs (distinguishing pending vs confirmed)
-    const itemClaimsMap = {}; // itemId -> { totalConfirmed: 0, totalPending: 0, claimants: [] }
+    const itemClaimsMap = {};
 
     rsvpsData.forEach(rsvp => {
       if (rsvp.claimedItems && Array.isArray(rsvp.claimedItems)) {
@@ -438,7 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Filter items
     const filtered = itemsData.filter(item => {
       if (activeFilter === 'big' && item.category !== 'big') return false;
       if (activeFilter === 'small' && item.category !== 'small') return false;
@@ -467,13 +524,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const remainingNeeded = Math.max(0, item.totalNeeded - totalClaimed);
       const isFullyClaimed = totalClaimed >= item.totalNeeded;
 
-      // Current user claim status
       const userClaim = currentUser.claimedItems.find(c => c.itemId === item.id);
       const userClaimQty = userClaim ? userClaim.quantity : 0;
       const userStatus = userClaim ? (userClaim.status || 'pending') : null;
       const isChecked = userClaimQty > 0;
 
-      // Card Highlight Classes
       let cardHighlightClass = '';
       if (isChecked) {
         cardHighlightClass = userStatus === 'confirmed' ? 'user-confirmed' : 'user-pending';
@@ -481,10 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
         cardHighlightClass = 'has-pending-others';
       }
 
-      // Checkbox Initials Badge
       const displayInitials = isChecked ? (currentUser.initials || getInitials(currentUser.name) || '✓') : '';
 
-      // Claimants Breakdown Tags
       const claimantsTags = claimsInfo.claimants.map(c => {
         const isMe = currentUser.name && c.name.toLowerCase() === currentUser.name.toLowerCase();
         let tagClass = 'others';
@@ -644,7 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalOverlay.classList.remove('active');
   }
 
-  // Stage 1: Temporary Selection
+  // Stage 1: Temporary Selection (Allow unselecting!)
   function saveItemClaim(itemId, quantity) {
     const existingIndex = currentUser.claimedItems.findIndex(c => c.itemId === itemId);
 
@@ -665,12 +718,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    // Broadcast pending hold to cloud
     persistRsvpsToCloud();
-    showToast(`Temporarily selected item! Click RSVP button to confirm.`);
+    showToast(quantity <= 0 ? `Unselected item!` : `Temporarily selected item! Click RSVP button to confirm.`);
   }
 
-  // Stage 2: Confirmed RSVP & Gifts Confirmation
+  // Stage 2: Confirmed RSVP & Gifts Confirmation (Supports Re-editing & Updating!)
   function handleRsvpSubmit(e) {
     e.preventDefault();
 
@@ -698,9 +750,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    // Broadcast confirmed state to cloud
+    // Broadcast updated/confirmed state to cloud
     persistRsvpsToCloud();
-    showToast(`🎉 RSVP & Gifts Confirmed! Thank you, ${currentUser.name}!`);
+    showToast(`🎉 RSVP & Gifts Updated! Thank you, ${currentUser.name}!`);
   }
 
   function renderRoster() {
