@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const POLL_INTERVAL_SECONDS = 6; // Smooth 6-second polling to prevent 429 rate limits
   const SECRET_PASSPHRASE = 'banana';
 
-  // BroadcastChannel for instant cross-tab / incognito sync
+  // BroadcastChannel for instant cross-tab sync (same browser, same profile only — does not sync across incognito windows)
   let syncChannel = null;
   if ('BroadcastChannel' in window) {
     try {
@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeItemForModal = null;
   let selectedModalQty = 1;
   let isSyncing = false;
+  let pendingSync = false; // dirty flag: true when a save was skipped because isSyncing was true
 
   // --- DOM Elements ---
   const countdownDays = document.getElementById('days');
@@ -234,8 +235,29 @@ document.addEventListener('DOMContentLoaded', () => {
           rsvpsData = payload;
           saveCachedRsvps(rsvpsData);
 
-          if (currentUser.name && rsvpsData.length > 0) {
-            syncCurrentUserWithRsvps();
+          if (currentUser.name) {
+            const cloudEntry = rsvpsData.find(r => r.name && r.name.toLowerCase() === currentUser.name.toLowerCase());
+            if (cloudEntry) {
+              // Cloud already has this user — treat cloud as source of truth.
+              // Preserve any new local pending items that haven't been pushed yet.
+              const newLocalPending = currentUser.claimedItems.filter(lc =>
+                lc.status === 'pending' && !cloudEntry.claimedItems.find(cc => cc.itemId === lc.itemId)
+              );
+              currentUser.claimedItems = [...cloudEntry.claimedItems, ...newLocalPending];
+              currentUser.attending = cloudEntry.attending || currentUser.attending;
+              currentUser.guestsCount = cloudEntry.guestsCount || currentUser.guestsCount;
+              currentUser.notes = cloudEntry.notes !== undefined ? cloudEntry.notes : currentUser.notes;
+              currentUser.initials = cloudEntry.initials || currentUser.initials;
+              saveUserToLocalStorage();
+              // If there are brand-new pending items locally, reflect them in the display array too
+              if (newLocalPending.length > 0) {
+                const idx = rsvpsData.findIndex(r => r.name.toLowerCase() === currentUser.name.toLowerCase());
+                if (idx !== -1) rsvpsData[idx] = { ...cloudEntry, claimedItems: [...cloudEntry.claimedItems, ...newLocalPending] };
+              }
+            } else {
+              // User not yet in cloud — add their local state to the display array
+              syncCurrentUserWithRsvps();
+            }
           }
 
           renderItems();
@@ -268,8 +290,12 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (e) {}
     }
 
-    if (isSyncing) return;
+    if (isSyncing) {
+      pendingSync = true; // remember to retry once the in-flight PUT finishes
+      return;
+    }
     isSyncing = true;
+    pendingSync = false;
 
     try {
       let writeSuccess = false;
@@ -297,6 +323,11 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to sync to Cloud', e);
     } finally {
       isSyncing = false;
+      if (pendingSync) {
+        // A save was queued while this PUT was in flight — retry with the latest state
+        pendingSync = false;
+        setTimeout(persistRsvpsToCloud, 50);
+      }
     }
   }
 
