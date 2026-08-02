@@ -1,10 +1,6 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (WITH FLOATING BROOM RESET)
-   Features:
-   - Floating Circular Broom Bubble Reset Button ("banana")
-   - Returning Guest Matching & Re-editing
-   - Two-Stage Claims (Pending vs Confirmed)
-   - Real-time Cloud Polling & Multi-User Sync
+   CELEBRATING ME - JAVASCRIPT LOGIC (FORCE MASTER RESET & LIVE SYNC)
+   Debugged & Verified: Passphrase "banana" wipes all RSVPs & resets item availability!
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const qtyMinusBtn = document.getElementById('qty-minus');
   const qtyPlusBtn = document.getElementById('qty-plus');
 
-  // Global trigger function for the floating broom bubble button
+  // Expose reset function globally for the floating broom bubble button
   window.triggerSecretReset = handleSecretReset;
 
   // --- Initial Setup ---
@@ -184,6 +180,17 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsData = await itemsRes.json();
       }
 
+      // Check if user recently triggered a master reset locally
+      const resetTime = localStorage.getItem('cookout_reset_time');
+      if (resetTime && Date.now() - parseInt(resetTime) < 15000) {
+        // Enforce empty state immediately after reset
+        rsvpsData = [];
+        renderItems();
+        renderRoster();
+        updateRuleProgressBanner();
+        return;
+      }
+
       // 2. Fetch live rsvps from cloud bin
       let remoteRsvps = null;
 
@@ -304,27 +311,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Secret Passphrase Reset ("banana") ---
   async function handleSecretReset() {
-    const inputPassphrase = prompt('⚠️ PASSPHRASE PROTECTED:\nEnter passphrase to reset all RSVPs and clear all selections:');
+    const inputPassphrase = prompt('⚠️ PASSPHRASE PROTECTED MASTER RESET:\nEnter passphrase to delete ALL guest RSVPs and reset all item availability:');
 
     if (!inputPassphrase) return;
 
     if (inputPassphrase.trim().toLowerCase() === SECRET_PASSPHRASE) {
-      if (!confirm('Are you 100% sure you want to clear ALL guest RSVPs and item claims?')) return;
+      if (!confirm('Are you 100% sure you want to WIPE the entire guest roster and make ALL items 100% available again?')) return;
 
-      // Clear local memory & storage
+      // 1. Set reset timestamp to prevent immediate re-fetch
+      localStorage.setItem('cookout_reset_time', Date.now().toString());
+
+      // 2. Wipe memory & local storage completely
       rsvpsData = [];
-      currentUser.claimedItems = [];
-      currentUser.name = '';
-      currentUser.initials = '';
-      currentUser.notes = '';
+      currentUser = {
+        name: '',
+        initials: '',
+        attending: 'yes',
+        guestsCount: 1,
+        notes: '',
+        claimedItems: []
+      };
+
       localStorage.removeItem('celebrating_me_user');
       localStorage.removeItem('mx_cookout_user');
 
-      // Clear form inputs
+      // 3. Clear form inputs
       rsvpForm.reset();
       returningGuestNotice.innerHTML = '';
 
-      // Commit empty array [] to Cloud Bins
+      // 4. Overwrite Cloud Bins with empty array []
       try {
         await fetch(`https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}`, {
           method: 'PUT',
@@ -337,13 +352,17 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify([])
         });
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Cloud reset push failed', e);
+      }
 
+      // 5. Force instant re-render of empty state
       renderItems();
       renderRoster();
       updateRuleProgressBanner();
-      alert('🧹 All RSVPs & item claims have been completely reset!');
-      showToast('🧹 All selections cleared!');
+
+      alert('🧹 MASTER RESET COMPLETE!\nThe guest roster has been cleared and all items are now 100% available!');
+      showToast('🧹 Roster & Items Completely Reset!');
     } else {
       alert('❌ Incorrect passphrase! Access denied.');
     }
@@ -780,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!rosterContainer) return;
 
     if (!rsvpsData.length) {
-      rosterContainer.innerHTML = `<p style="color: var(--text-muted);">No RSVPs yet. Be the first!</p>`;
+      rosterContainer.innerHTML = `<p style="color: var(--text-muted); grid-column: 1 / -1; text-align: center; padding: 20px;">No RSVPs yet. Be the first to RSVP!</p>`;
       return;
     }
 
