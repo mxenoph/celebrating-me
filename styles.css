@@ -1,7 +1,10 @@
 /* ==========================================================================
-   CELEBRATING ME - LIGHT & FRESH PINE FOREST THEME
-   Aesthetics: Clean White & Mint Backdrop, Green/Gold Floating Embers, 
-   3-Column Full-Width Grid, Glassmorphic Cards & Elevated Shadows
+   CELEBRATING ME - LIGHT & FRESH THEME (TWO-STAGE CLAIM SYSTEM)
+   Includes:
+   - Green/Amber Left Border for Available Items
+   - Prominent Selection Highlights for Current User
+   - Pending / Temporary Hold vs. Confirmed Claim Badges
+   - Full Width 3-Column Items Grid
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
@@ -10,15 +13,12 @@
   --bg-light: #f3f7f4;
   --bg-white: #ffffff;
   --bg-card: rgba(255, 255, 255, 0.95);
-  --bg-card-hover: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.85);
   
   --border-light: rgba(30, 86, 49, 0.12);
   --border-glow: rgba(30, 86, 49, 0.3);
 
   --accent-pine: #1e5631;
   --accent-emerald: #2e8b57;
-  --accent-leaf: #3a9d5d;
   --accent-amber: #d97706;
   --accent-gold: #f5b041;
   --accent-sky: #0284c7;
@@ -63,7 +63,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Ambient Particles - Green and Yellow Forest Colors */
+/* Ambient Particles */
 .particles-container {
   position: fixed;
   top: 0;
@@ -123,7 +123,7 @@ body {
 
 /* Full Width Main Container */
 .container {
-  max-width: 1400px; /* Full width layout */
+  max-width: 1400px;
   width: 94%;
   margin: 0 auto;
   padding: 0 20px 80px 20px;
@@ -162,7 +162,6 @@ body {
   line-height: 1.15;
   color: var(--accent-pine);
   margin-bottom: 16px;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.04);
 }
 
 .hero-subtitle {
@@ -185,7 +184,7 @@ body {
   color: var(--accent-pine);
 }
 
-/* Story Card - Fresh Light Styling */
+/* Story Card */
 .story-card {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
@@ -365,7 +364,7 @@ body {
 .section-subtitle {
   color: var(--text-muted);
   font-size: 1.05rem;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 /* Panels */
@@ -378,7 +377,7 @@ body {
   box-shadow: var(--shadow-main);
 }
 
-/* RSVP Form Grid */
+/* Form Styles */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -459,6 +458,21 @@ body {
 .btn-secondary:hover {
   background: #e2ece5;
   color: var(--accent-pine);
+}
+
+/* Workflow Notice Box */
+.workflow-notice {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-left: 5px solid var(--accent-amber);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  font-size: 0.98rem;
+  color: #713f12;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Rule Progress Bar Banner */
@@ -561,11 +575,11 @@ body {
 }
 
 /* ==========================================================================
-   ITEMS GRID - 3 COLUMNS ON DESKTOP
+   ITEMS GRID - 3 COLUMNS & TWO-STAGE SELECTION STYLING
    ========================================================================== */
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 COLUMNS ON DESKTOP */
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
@@ -583,11 +597,11 @@ body {
 }
 
 .item-card:hover {
-  border-color: rgba(30, 86, 49, 0.35);
   transform: translateY(-3px);
   box-shadow: var(--shadow-hover);
 }
 
+/* Base Available Items Left Borders */
 .item-card.category-big {
   border-left: 5px solid var(--accent-amber);
 }
@@ -596,8 +610,30 @@ body {
   border-left: 5px solid var(--accent-pine);
 }
 
+/* Stage 1: Temporary Selection by Current User (Prominent Amber Glow) */
+.item-card.user-pending {
+  border: 2px solid var(--accent-amber) !important;
+  border-left: 6px solid var(--accent-amber) !important;
+  box-shadow: 0 0 20px rgba(217, 119, 6, 0.25) !important;
+  background: #fffdfa;
+}
+
+/* Stage 2: Confirmed Claim by Current User (Prominent Green Glow) */
+.item-card.user-confirmed {
+  border: 2px solid var(--accent-pine) !important;
+  border-left: 6px solid var(--accent-pine) !important;
+  box-shadow: 0 0 20px rgba(30, 86, 49, 0.25) !important;
+  background: #f4faf6;
+}
+
+/* Pending hold by another user */
+.item-card.has-pending-others {
+  border-style: dashed;
+  border-color: rgba(217, 119, 6, 0.4);
+}
+
 .item-card.fully-claimed {
-  opacity: 0.75;
+  opacity: 0.8;
   background: #f8faf8;
   border-color: rgba(46, 139, 87, 0.3);
 }
@@ -609,7 +645,7 @@ body {
   margin-bottom: 12px;
 }
 
-/* Checkbox & Initials Badge */
+/* Custom Checkbox & Initials Badge */
 .checkbox-wrapper {
   position: relative;
   display: inline-block;
@@ -648,6 +684,12 @@ body {
   background: var(--accent-pine);
   border-color: var(--accent-emerald);
   box-shadow: 0 0 10px rgba(30, 86, 49, 0.3);
+}
+
+.checkbox-custom.pending-check {
+  background: var(--accent-amber) !important;
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.3) !important;
 }
 
 .checkbox-custom .initials-badge {
@@ -708,7 +750,7 @@ body {
   flex-wrap: wrap;
 }
 
-/* Counter & Claim Badges */
+/* Counter & Claim Status Badges */
 .counter-badge {
   font-size: 0.85rem;
   font-weight: 700;
@@ -747,10 +789,23 @@ body {
   color: var(--text-main);
 }
 
-.claimant-tag.my-claim {
+.claimant-tag.my-pending {
+  background: var(--accent-amber);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.claimant-tag.my-confirmed {
   background: var(--accent-pine);
   color: #ffffff;
   font-weight: 700;
+}
+
+.claimant-tag.others-pending {
+  background: #fef08a;
+  border: 1px dashed var(--accent-amber);
+  color: #713f12;
+  font-weight: 600;
 }
 
 .btn-claim-qty {
@@ -913,58 +968,6 @@ body {
   text-align: center;
 }
 
-/* Sync Settings Panel & Badges */
-.admin-badge-trigger {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 10px 18px;
-  background: var(--accent-pine);
-  border: none;
-  border-radius: var(--radius-pill);
-  color: #ffffff;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  z-index: 100;
-  box-shadow: 0 8px 20px rgba(30, 86, 49, 0.3);
-  transition: var(--transition);
-}
-
-.admin-badge-trigger:hover {
-  background: var(--accent-emerald);
-  transform: translateY(-2px);
-}
-
-/* Sync Status Indicator Banner in Header */
-.sync-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: rgba(46, 139, 87, 0.1);
-  border: 1px solid rgba(46, 139, 87, 0.2);
-  border-radius: var(--radius-pill);
-  font-size: 0.8rem;
-  color: var(--accent-pine);
-  font-weight: 600;
-  margin-top: 10px;
-}
-
-.sync-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent-emerald);
-  box-shadow: 0 0 6px var(--accent-emerald);
-  animation: pulseDot 2s infinite;
-}
-
-@keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
-}
-
 /* Toast Notifications */
 .toast-container {
   position: fixed;
@@ -1001,7 +1004,7 @@ body {
 /* Responsive Grid Overrides */
 @media (max-width: 1100px) {
   .items-grid {
-    grid-template-columns: repeat(2, 1fr); /* 2 columns on tablet */
+    grid-template-columns: repeat(2, 1fr);
   }
   .container {
     padding: 0 16px 60px 16px;
@@ -1011,7 +1014,7 @@ body {
 
 @media (max-width: 700px) {
   .items-grid {
-    grid-template-columns: 1fr; /* 1 column on mobile */
+    grid-template-columns: 1fr;
   }
   .hero {
     padding: 35px 10px 20px 10px;

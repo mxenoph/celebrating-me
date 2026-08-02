@@ -99,7 +99,7 @@
     <!-- RSVP Section -->
     <section class="glass-panel" id="rsvp-section">
       <h2 class="section-title"><span>✍️</span> RSVP & Guest Info</h2>
-      <p class="section-subtitle">Let us know you're coming so we can assign your items to bring!</p>
+      <p class="section-subtitle">Enter your details and click the button below to confirm your RSVP & lock in your items to bring!</p>
 
       <form id="rsvp-form">
         <div class="form-grid">
@@ -133,8 +133,8 @@
           <textarea id="guest-notes" class="textarea-field" rows="2" placeholder="Any special notes for MX?"></textarea>
         </div>
 
-        <button type="submit" class="btn-primary">
-          <span>💾 Save My RSVP</span>
+        <button type="submit" class="btn-primary" id="rsvp-submit-btn">
+          <span>💾 Save & Confirm My RSVP & Items</span>
         </button>
       </form>
     </section>
@@ -143,6 +143,14 @@
     <section class="glass-panel" id="bring-list-section">
       <h2 class="section-title"><span>🛒</span> What To Bring List</h2>
       <p class="section-subtitle">Each guest should bring either <strong>1 BIG item</strong> OR <strong>2 SMALL items</strong>.</p>
+
+      <!-- Workflow Instruction Notice -->
+      <div class="workflow-notice">
+        <span style="font-size: 1.4rem;">💡</span>
+        <div>
+          <strong>How Item Selection Works:</strong> Selecting an item temporarily holds it for you! You <strong>MUST click the "Save & Confirm My RSVP & Items" button</strong> above to lock in your selections and confirm what you're bringing.
+        </div>
+      </div>
 
       <!-- Rule Banner Status -->
       <div class="rule-banner" id="rule-banner">
@@ -156,7 +164,7 @@
           <button class="filter-tab" data-filter="big">🔥 Big Items (Pick 1)</button>
           <button class="filter-tab" data-filter="small">🥗 Small Items (Pick 2)</button>
           <button class="filter-tab" data-filter="needed">⏳ Still Needed</button>
-          <button class="filter-tab" data-filter="claimed">✅ Claimed</button>
+          <button class="filter-tab" data-filter="claimed">✅ Confirmed</button>
         </div>
 
         <div class="search-box">
@@ -199,7 +207,7 @@
 
       <div class="modal-actions">
         <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
-        <button class="btn-primary" id="modal-confirm-btn">Confirm Claim</button>
+        <button class="btn-primary" id="modal-confirm-btn">Confirm Selection</button>
       </div>
     </div>
   </div>

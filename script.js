@@ -1,6 +1,10 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (ROBUST MULTI-USER CLOUD SYNC)
-   Debugged & Tested: Handles JSONBin X-Access-Key and Keyless Fallback Sync
+   CELEBRATING ME - JAVASCRIPT LOGIC (TWO-STAGE CLAIMS & CLOUD SYNC)
+   Features:
+   - Available items: Green / Amber left border
+   - Prominent Selection: Highlighted glowing border for user's selections
+   - Two-Stage System: Pending/Temporary hold vs Confirmed claim
+   - Real-time Sync & Polling for multi-user/incognito updates
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,17 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     attending: 'yes',
     guestsCount: 1,
     notes: '',
-    claimedItems: [] // array of { itemId, quantity }
+    claimedItems: [] // array of { itemId, quantity, status: 'pending' | 'confirmed' }
   };
 
-  // Live Sync Config
-  // NOTE: JSONBin requires an X-Access-Key or X-Master-Key for PUT updates!
-  // If JSONBIN_ACCESS_KEY is empty, we automatically fall back to Keyless Cloud Storage.
-  const syncConfig = {
-    binId: '6a6ee55ef5f4af5e29e03b69', // Your JSONBin ID
-    apiKey: '$2a$10$NZNg5GPqV6Ip8a0LIiQL5.SgfOklPNGTruj8tf2SsWZNqvGRGpDSq',                        // Optional: Your JSONBin Access Key ($2a$10$...)
-    pollIntervalSeconds: 4
-  };
+  const PUBLIC_BIN_ID = '6a6ee55ef5f4af5e29e03b69';
+  const POLL_INTERVAL_SECONDS = 3;
 
   let activeItemForModal = null;
   let selectedModalQty = 1;
@@ -87,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderItems();
     });
 
-    // RSVP Submit
+    // RSVP Submit (Confirms pending selections!)
     rsvpForm.addEventListener('submit', handleRsvpSubmit);
 
     // Filter Tabs
@@ -108,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateRuleProgressBanner();
 
     // Start Live Polling for multi-user real-time sync
-    setInterval(fetchLatestData, syncConfig.pollIntervalSeconds * 1000);
+    setInterval(fetchLatestData, POLL_INTERVAL_SECONDS * 1000);
 
     // Modal Closes
     modalCancelBtn.addEventListener('click', closeModal);
@@ -150,35 +148,27 @@ document.addEventListener('DOMContentLoaded', () => {
       // 2. Fetch live rsvps from cloud bin
       let remoteRsvps = null;
 
-      // Primary: Try JSONBin.io
-      if (syncConfig.binId) {
+      if (PUBLIC_BIN_ID) {
+        // Try JSONBin
         try {
-          const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`;
-          const headers = {};
-          if (syncConfig.apiKey) {
-            headers['X-Master-Key'] = syncConfig.apiKey;
-            headers['X-Access-Key'] = syncConfig.apiKey;
-          }
-
-          const binRes = await fetch(binUrl, { headers });
+          const binUrl = `https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}/latest`;
+          const binRes = await fetch(binUrl);
           if (binRes.ok) {
             const jsonBinPayload = await binRes.json();
-            remoteRsvps = jsonBinPayload.record;
-          }
-        } catch (e) {
-          console.warn('JSONBin fetch error:', e);
-        }
-      }
-
-      // Backup: Keyless public bin if JSONBin fails
-      if (!remoteRsvps && syncConfig.binId) {
-        try {
-          const keylessUrl = `https://api.jsonstorage.net/v1/json/${syncConfig.binId}`;
-          const kRes = await fetch(keylessUrl);
-          if (kRes.ok) {
-            remoteRsvps = await kRes.json();
+            remoteRsvps = jsonBinPayload.record || jsonBinPayload;
           }
         } catch (e) {}
+
+        // Keyless storage backup if JSONBin not reachable
+        if (!remoteRsvps) {
+          try {
+            const backupUrl = `https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`;
+            const bRes = await fetch(backupUrl);
+            if (bRes.ok) {
+              remoteRsvps = await bRes.json();
+            }
+          } catch (e) {}
+        }
       }
 
       // Fallback: Local rsvps.json
@@ -201,11 +191,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Push Update to Cloud (Handles JSONBin PUT & Keyless Backup) ---
-  async function persistRsvpsToJsonBin() {
+  // --- Push Update to Cloud (Live Guest Claiming) ---
+  async function persistRsvpsToCloud() {
     saveUserToLocalStorage();
 
-    if (!syncConfig.binId) {
+    if (!PUBLIC_BIN_ID) {
       syncCurrentUserWithRsvps();
       renderItems();
       renderRoster();
@@ -216,65 +206,45 @@ document.addEventListener('DOMContentLoaded', () => {
     isSyncing = true;
 
     try {
-      // 1. Fetch latest array right before writing
+      // Fetch latest array right before writing to prevent overwrites
       let latestRemote = [...rsvpsData];
 
-      if (syncConfig.binId) {
-        try {
-          const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`;
-          const headers = {};
-          if (syncConfig.apiKey) {
-            headers['X-Master-Key'] = syncConfig.apiKey;
-            headers['X-Access-Key'] = syncConfig.apiKey;
+      try {
+        const binUrl = `https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}/latest`;
+        const getRes = await fetch(binUrl);
+        if (getRes.ok) {
+          const payload = await getRes.json();
+          const rec = payload.record || payload;
+          if (Array.isArray(rec)) {
+            latestRemote = rec;
           }
+        }
+      } catch (e) {}
 
-          const getRes = await fetch(binUrl, { headers });
-          if (getRes.ok) {
-            const payload = await getRes.json();
-            if (payload.record && Array.isArray(payload.record)) {
-              latestRemote = payload.record;
-            }
-          }
-        } catch (e) {}
-      }
-
-      // Merge current user RSVP
+      // Merge current user RSVP & selections
       const mergedRsvps = mergeRsvpsArrays(latestRemote, currentUser);
       rsvpsData = mergedRsvps;
 
-      // 2. PUT update to JSONBin
+      // PUT update to Cloud
       let writeSuccess = false;
 
-      if (syncConfig.binId) {
-        try {
-          const headers = {
+      // Try PUT to JSONBin
+      try {
+        const putRes = await fetch(`https://api.jsonbin.io/v3/b/${PUBLIC_BIN_ID}`, {
+          method: 'PUT',
+          headers: {
             'Content-Type': 'application/json'
-          };
-          if (syncConfig.apiKey) {
-            headers['X-Master-Key'] = syncConfig.apiKey;
-            headers['X-Access-Key'] = syncConfig.apiKey;
-          }
+          },
+          body: JSON.stringify(mergedRsvps)
+        });
 
-          const putRes = await fetch(`https://api.jsonbin.io/v3/b/${syncConfig.binId}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify(mergedRsvps)
-          });
+        if (putRes.ok) writeSuccess = true;
+      } catch (e) {}
 
-          if (putRes.ok) {
-            writeSuccess = true;
-          } else if (putRes.status === 401 || putRes.status === 403) {
-            console.warn(`JSONBin error ${putRes.status}: JSONBin requires X-Access-Key or X-Master-Key header to authorize PUT updates.`);
-          }
-        } catch (e) {
-          console.warn('JSONBin PUT error:', e);
-        }
-      }
-
-      // Keyless Storage Backup (Ensures write succeeds 100% even if no key is set)
-      if (!writeSuccess && syncConfig.binId) {
+      // Keyless backup if needed
+      if (!writeSuccess) {
         try {
-          const altRes = await fetch(`https://api.jsonstorage.net/v1/json/${syncConfig.binId}`, {
+          const altRes = await fetch(`https://api.jsonstorage.net/v1/json/${PUBLIC_BIN_ID}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json'
@@ -286,11 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (writeSuccess) {
-        showToast(`✅ Saved live to Cloud!`);
-        renderItems();
-        renderRoster();
-      } else {
-        console.warn('Could not persist to cloud. (Check JSONBin Access Key)');
+        showToast(`✅ Synced with Cloud!`);
       }
     } catch (e) {
       console.error('Failed to sync to Cloud', e);
@@ -438,37 +404,48 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
-  // --- Render 3-Column Items Grid ---
+  // --- Render 3-Column Items Grid with Two-Stage Selections ---
   function renderItems() {
     if (!itemsData.length) return;
 
     const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
     const searchQuery = searchInput.value.toLowerCase().trim();
 
-    const itemClaimsMap = {};
+    // Map total claims per item across all RSVPs (distinguishing pending vs confirmed)
+    const itemClaimsMap = {}; // itemId -> { totalConfirmed: 0, totalPending: 0, claimants: [] }
 
     rsvpsData.forEach(rsvp => {
       if (rsvp.claimedItems && Array.isArray(rsvp.claimedItems)) {
         rsvp.claimedItems.forEach(c => {
           if (!itemClaimsMap[c.itemId]) {
-            itemClaimsMap[c.itemId] = { totalClaimed: 0, claimants: [] };
+            itemClaimsMap[c.itemId] = { totalConfirmed: 0, totalPending: 0, claimants: [] };
           }
-          itemClaimsMap[c.itemId].totalClaimed += c.quantity;
+
+          const status = c.status || 'confirmed';
+          if (status === 'confirmed') {
+            itemClaimsMap[c.itemId].totalConfirmed += c.quantity;
+          } else {
+            itemClaimsMap[c.itemId].totalPending += c.quantity;
+          }
+
           itemClaimsMap[c.itemId].claimants.push({
             name: rsvp.name,
             initials: rsvp.initials || getInitials(rsvp.name),
-            quantity: c.quantity
+            quantity: c.quantity,
+            status: status
           });
         });
       }
     });
 
+    // Filter items
     const filtered = itemsData.filter(item => {
       if (activeFilter === 'big' && item.category !== 'big') return false;
       if (activeFilter === 'small' && item.category !== 'small') return false;
       
-      const claimsInfo = itemClaimsMap[item.id] || { totalClaimed: 0, claimants: [] };
-      const isFullyClaimed = claimsInfo.totalClaimed >= item.totalNeeded;
+      const claimsInfo = itemClaimsMap[item.id] || { totalConfirmed: 0, totalPending: 0, claimants: [] };
+      const totalClaimed = claimsInfo.totalConfirmed + claimsInfo.totalPending;
+      const isFullyClaimed = totalClaimed >= item.totalNeeded;
 
       if (activeFilter === 'claimed' && !isFullyClaimed) return false;
       if (activeFilter === 'needed' && isFullyClaimed) return false;
@@ -483,29 +460,52 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     itemsContainer.innerHTML = filtered.map(item => {
-      const claimsInfo = itemClaimsMap[item.id] || { totalClaimed: 0, claimants: [] };
-      const totalClaimed = claimsInfo.totalClaimed;
+      const claimsInfo = itemClaimsMap[item.id] || { totalConfirmed: 0, totalPending: 0, claimants: [] };
+      const totalConfirmed = claimsInfo.totalConfirmed;
+      const totalPending = claimsInfo.totalPending;
+      const totalClaimed = totalConfirmed + totalPending;
       const remainingNeeded = Math.max(0, item.totalNeeded - totalClaimed);
       const isFullyClaimed = totalClaimed >= item.totalNeeded;
 
+      // Current user claim status
       const userClaim = currentUser.claimedItems.find(c => c.itemId === item.id);
       const userClaimQty = userClaim ? userClaim.quantity : 0;
+      const userStatus = userClaim ? (userClaim.status || 'pending') : null;
       const isChecked = userClaimQty > 0;
 
+      // Card Highlight Classes
+      let cardHighlightClass = '';
+      if (isChecked) {
+        cardHighlightClass = userStatus === 'confirmed' ? 'user-confirmed' : 'user-pending';
+      } else if (totalPending > 0) {
+        cardHighlightClass = 'has-pending-others';
+      }
+
+      // Checkbox Initials Badge
       const displayInitials = isChecked ? (currentUser.initials || getInitials(currentUser.name) || '✓') : '';
 
+      // Claimants Breakdown Tags
       const claimantsTags = claimsInfo.claimants.map(c => {
         const isMe = currentUser.name && c.name.toLowerCase() === currentUser.name.toLowerCase();
-        return `<span class="claimant-tag ${isMe ? 'my-claim' : ''}">${c.initials}: ${c.quantity}</span>`;
+        let tagClass = 'others';
+
+        if (isMe) {
+          tagClass = c.status === 'confirmed' ? 'my-confirmed' : 'my-pending';
+        } else if (c.status === 'pending') {
+          tagClass = 'others-pending';
+        }
+
+        const labelStatus = c.status === 'pending' ? '⏳ hold' : '✅ confirmed';
+        return `<span class="claimant-tag ${tagClass}">${c.initials}: ${c.quantity} (${labelStatus})</span>`;
       }).join(' ');
 
       return `
-        <div class="item-card category-${item.category} ${isFullyClaimed ? 'fully-claimed' : ''}" data-id="${item.id}">
+        <div class="item-card category-${item.category} ${cardHighlightClass} ${isFullyClaimed ? 'fully-claimed' : ''}" data-id="${item.id}">
           <div>
             <div class="item-header">
               <div class="checkbox-wrapper">
                 <input type="checkbox" id="check-${item.id}" class="item-checkbox" ${isChecked ? 'checked' : ''} data-id="${item.id}">
-                <label for="check-${item.id}" class="checkbox-custom" data-id="${item.id}">
+                <label for="check-${item.id}" class="checkbox-custom ${userStatus === 'pending' ? 'pending-check' : ''}" data-id="${item.id}">
                   <span class="initials-badge">${displayInitials}</span>
                 </label>
               </div>
@@ -523,19 +523,19 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="item-footer">
             <div style="display: flex; flex-direction: column; gap: 4px;">
               <div class="counter-badge ${isFullyClaimed ? 'claimed' : 'needed'}">
-                ${isFullyClaimed ? `✓ Fully Claimed (${totalClaimed}/${item.totalNeeded} ${item.unit})` : `⏳ Needed: ${remainingNeeded} of ${item.totalNeeded} ${item.unit}`}
+                ${isFullyClaimed ? `✓ Fully Claimed (${totalConfirmed} confirmed, ${totalPending} pending)` : `⏳ Needed: ${remainingNeeded} of ${item.totalNeeded} ${item.unit}`}
               </div>
 
               ${claimsInfo.claimants.length > 0 ? `
                 <div class="claimants-list">
-                  <span style="font-size: 0.75rem; color: var(--text-dim);">Claimed by:</span>
+                  <span style="font-size: 0.75rem; color: var(--text-dim);">Status:</span>
                   ${claimantsTags}
                 </div>
               ` : ''}
             </div>
 
             <button class="btn-claim-qty" data-id="${item.id}">
-              ${isChecked ? `Edit Qty (${userClaimQty})` : `Claim Item`}
+              ${isChecked ? `${userStatus === 'confirmed' ? '✅ Claimed' : '⏳ Pending'} (${userClaimQty})` : `Select Item`}
             </button>
           </div>
         </div>
@@ -572,9 +572,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showPreRsvpModal() {
-    modalTitle.innerHTML = `⚠️ Please RSVP First!`;
+    modalTitle.innerHTML = `⚠️ Please Enter Your Name First!`;
     modalBody.innerHTML = `
-      <p style="margin-bottom: 12px;">Before claiming items from the list, please enter your name in the <strong>RSVP form</strong> so everyone knows who is bringing what!</p>
+      <p style="margin-bottom: 12px;">Before selecting items from the list, please enter your name in the <strong>RSVP form</strong> so everyone knows who is bringing what!</p>
     `;
     qtyStepperContainer.style.display = 'none';
 
@@ -603,12 +603,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const existingClaim = currentUser.claimedItems.find(c => c.itemId === item.id);
     selectedModalQty = existingClaim ? existingClaim.quantity : (maxAvailable > 0 ? 1 : 0);
 
-    modalTitle.innerHTML = `${item.icon} Claim ${item.name}`;
+    modalTitle.innerHTML = `${item.icon} Select ${item.name}`;
     modalBody.innerHTML = `
       <p>How many <strong>${item.name}</strong> are you bringing?</p>
       <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
         Total needed: <strong>${item.totalNeeded} ${item.unit}</strong> | Claimed by others: <strong>${claimedByOthers}</strong> | Available: <strong>${maxAvailable}</strong>
       </div>
+      <p style="font-size: 0.82rem; color: var(--accent-amber); margin-top: 8px;">
+        💡 <em>This holds the item temporarily. Click the "Save & Confirm My RSVP & Items" button on the page to lock in your choice!</em>
+      </p>
     `;
 
     qtyStepperContainer.style.display = 'flex';
@@ -628,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    modalConfirmBtn.textContent = selectedModalQty === 0 ? 'Remove Claim' : 'Confirm Claim';
+    modalConfirmBtn.textContent = selectedModalQty === 0 ? 'Remove Hold' : 'Temporarily Hold Item';
     modalConfirmBtn.onclick = () => {
       saveItemClaim(item.id, selectedModalQty);
       closeModal();
@@ -641,6 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalOverlay.classList.remove('active');
   }
 
+  // Stage 1: Temporary Selection
   function saveItemClaim(itemId, quantity) {
     const existingIndex = currentUser.claimedItems.findIndex(c => c.itemId === itemId);
 
@@ -649,8 +653,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       if (existingIndex !== -1) {
         currentUser.claimedItems[existingIndex].quantity = quantity;
+        currentUser.claimedItems[existingIndex].status = currentUser.claimedItems[existingIndex].status || 'pending';
       } else {
-        currentUser.claimedItems.push({ itemId, quantity });
+        currentUser.claimedItems.push({ itemId, quantity, status: 'pending' });
       }
     }
 
@@ -660,9 +665,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    persistRsvpsToJsonBin();
+    // Broadcast pending hold to cloud
+    persistRsvpsToCloud();
+    showToast(`Temporarily selected item! Click RSVP button to confirm.`);
   }
 
+  // Stage 2: Confirmed RSVP & Gifts Confirmation
   function handleRsvpSubmit(e) {
     e.preventDefault();
 
@@ -678,6 +686,11 @@ document.addEventListener('DOMContentLoaded', () => {
     currentUser.guestsCount = parseInt(guestCountInput.value) || 1;
     currentUser.notes = guestNotesInput.value.trim();
 
+    // Lock in all selections as confirmed!
+    currentUser.claimedItems.forEach(c => {
+      c.status = 'confirmed';
+    });
+
     saveUserToLocalStorage();
     syncCurrentUserWithRsvps();
 
@@ -685,8 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    persistRsvpsToJsonBin();
-    showToast(`RSVP Saved! Thank you, ${currentUser.name}! 🎉`);
+    // Broadcast confirmed state to cloud
+    persistRsvpsToCloud();
+    showToast(`🎉 RSVP & Gifts Confirmed! Thank you, ${currentUser.name}!`);
   }
 
   function renderRoster() {
@@ -699,14 +713,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rosterContainer.innerHTML = rsvpsData.map(rsvp => {
       const attendingBadge = rsvp.attending === 'yes' ? '✅ Attending' : (rsvp.attending === 'no' ? '❌ Can\'t Make It' : '❓ Maybe');
-      const itemsCount = rsvp.claimedItems ? rsvp.claimedItems.length : 0;
+      const confirmedItems = rsvp.claimedItems ? rsvp.claimedItems.filter(c => c.status === 'confirmed').length : 0;
+      const pendingItems = rsvp.claimedItems ? rsvp.claimedItems.filter(c => c.status === 'pending').length : 0;
 
       return `
         <div class="roster-card">
           <div class="avatar-circle">${rsvp.initials || getInitials(rsvp.name)}</div>
           <div class="roster-info">
             <h4>${rsvp.name} (${rsvp.guestsCount} guest${rsvp.guestsCount > 1 ? 's' : ''})</h4>
-            <p>${attendingBadge} • ${itemsCount} item(s) bringing</p>
+            <p>${attendingBadge} • ${confirmedItems} confirmed, ${pendingItems} pending</p>
             ${rsvp.notes ? `<p style="font-style: italic; color: var(--text-muted); margin-top: 4px;">"${rsvp.notes}"</p>` : ''}
           </div>
         </div>
