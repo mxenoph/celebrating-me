@@ -209,30 +209,22 @@
     </div>
   </div>
 
-  <!-- Host Live Sync & JSONBin Settings Modal -->
+  <!-- Live Sync Settings Modal -->
   <div class="modal-overlay" id="admin-modal">
     <div class="modal-box">
-      <div class="modal-title"><span>⚡</span> Live JSONBin.io Cloud Sync</div>
+      <div class="modal-title"><span>⚡</span> Live Sync Settings</div>
       <div class="modal-body">
-        <p>Enable <strong>instant real-time guest claiming with zero logins or tokens needed for guests</strong>:</p>
+        <p>Set your <strong>Public Bin ID</strong> for instant live guest claims across all devices:</p>
         
         <div style="margin: 16px 0; display: flex; flex-direction: column; gap: 12px;">
           <div class="form-group">
-            <label for="jsonbin-bin-id">JSONBin Bin ID *</label>
+            <label for="jsonbin-bin-id">Public Cloud Bin ID</label>
             <input type="text" id="jsonbin-bin-id" class="input-field" placeholder="e.g. 66ab1234567890...">
-          </div>
-
-          <div class="form-group">
-            <label for="jsonbin-api-key">JSONBin Master Key (Optional for private bins)</label>
-            <input type="password" id="jsonbin-api-key" class="input-field" placeholder="$2a$10$...">
-            <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">
-              From JSONBin.io dashboard > API Keys.
-            </div>
           </div>
         </div>
 
         <button class="btn-primary" id="save-sync-config-btn" style="margin-bottom: 12px;">
-          <span>💾 Save & Enable Live Guest Sync</span>
+          <span>💾 Save Public Bin ID</span>
         </button>
 
         <hr style="border: 0; border-top: 1px solid var(--border-light); margin: 16px 0;">

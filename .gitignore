@@ -1,0 +1,3 @@
+# Local environment / OS files
+.DS_Store
+*.log

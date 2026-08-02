@@ -1,6 +1,6 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (JSONBIN.IO REAL-TIME GUEST SYNC)
-   Seamless Live Multi-User Sync using JSONBin.io (Zero login for guests!)
+   CELEBRATING ME - JAVASCRIPT LOGIC (PUBLIC JSONBIN.IO REAL-TIME GUEST SYNC)
+   Seamless Live Multi-User Sync using a Public JSONBin ID (Zero Keys Required!)
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,10 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     claimedItems: [] // array of { itemId, quantity }
   };
 
-  // JSONBin.io Live Sync Settings
+  // Public JSONBin.io Live Sync Settings (Paste your Public Bin ID here!)
   let syncConfig = {
-    binId: '',       // e.g. '66ab1234567890...'
-    apiKey: '',      // e.g. '$2a$10$...' (Master Key or Access Key)
+    binId: '', // e.g. '66ab1234567890...' (Paste your Public Bin ID here or set in settings)
     pollIntervalSeconds: 5
   };
 
@@ -61,9 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminModal = document.getElementById('admin-modal');
   const downloadJsonBtn = document.getElementById('download-json-btn');
 
-  // JSONBin Settings Inputs
+  // Settings Inputs
   const jsonbinBinIdInput = document.getElementById('jsonbin-bin-id');
-  const jsonbinApiKeyInput = document.getElementById('jsonbin-api-key');
   const saveSyncConfigBtn = document.getElementById('save-sync-config-btn');
   const syncStatusBanner = document.getElementById('sync-status-banner');
 
@@ -163,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Fetch Latest Data (Tries JSONBin.io first, fallback to local rsvps.json) ---
+  // --- Fetch Latest Data (Tries Public JSONBin.io first, fallback to local rsvps.json) ---
   async function fetchLatestData() {
     try {
       // 1. Fetch items.json
@@ -172,17 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsData = await itemsRes.json();
       }
 
-      // 2. Fetch live rsvps from JSONBin.io if binId is configured
+      // 2. Fetch live rsvps from Public JSONBin.io (No API Key needed!)
       let remoteRsvps = null;
 
       if (syncConfig.binId) {
         const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`;
-        const headers = {};
-        if (syncConfig.apiKey) {
-          headers['X-Master-Key'] = syncConfig.apiKey;
-        }
-
-        const binRes = await fetch(binUrl, { headers });
+        const binRes = await fetch(binUrl);
         if (binRes.ok) {
           const jsonBinPayload = await binRes.json();
           remoteRsvps = jsonBinPayload.record;
@@ -209,12 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Push Update to JSONBin.io (Live Guest Claiming) ---
+  // --- Push Update to Public JSONBin.io (No API Key needed!) ---
   async function persistRsvpsToJsonBin() {
     saveUserToLocalStorage();
 
     if (!syncConfig.binId) {
-      // If binId not configured yet, save in local storage & local array
       syncCurrentUserWithRsvps();
       renderItems();
       renderRoster();
@@ -225,16 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
     isSyncing = true;
 
     try {
-      // Re-fetch latest bin data right before writing to prevent overwrites
       const binUrl = `https://api.jsonbin.io/v3/b/${syncConfig.binId}`;
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      if (syncConfig.apiKey) {
-        headers['X-Master-Key'] = syncConfig.apiKey;
-      }
-
-      const getRes = await fetch(`${binUrl}/latest`, { headers });
+      
+      // Fetch latest remote array right before writing to prevent overwrites
+      const getRes = await fetch(`${binUrl}/latest`);
       let latestRemote = [];
       if (getRes.ok) {
         const payload = await getRes.json();
@@ -245,10 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const mergedRsvps = mergeRsvpsArrays(latestRemote, currentUser);
       rsvpsData = mergedRsvps;
 
-      // PUT update to JSONBin
+      // PUT update to Public JSONBin
       const putRes = await fetch(binUrl, {
         method: 'PUT',
-        headers,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(mergedRsvps)
       });
 
@@ -320,20 +308,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('celebrating_me_sync_config');
     if (saved) {
       try {
-        syncConfig = { ...syncConfig, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        if (!syncConfig.binId && parsed.binId) syncConfig.binId = parsed.binId;
         if (jsonbinBinIdInput) jsonbinBinIdInput.value = syncConfig.binId || '';
-        if (jsonbinApiKeyInput) jsonbinApiKeyInput.value = syncConfig.apiKey || '';
       } catch (e) {}
     }
   }
 
   function handleSaveSyncConfig() {
     syncConfig.binId = jsonbinBinIdInput.value.trim();
-    syncConfig.apiKey = jsonbinApiKeyInput.value.trim();
 
     localStorage.setItem('celebrating_me_sync_config', JSON.stringify(syncConfig));
     updateSyncStatusUI();
-    showToast('JSONBin live settings saved!');
+    showToast('Public Bin ID saved!');
     closeModal();
     fetchLatestData();
   }
@@ -343,11 +330,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncConfig.binId) {
       syncStatusBanner.innerHTML = `
         <span class="sync-dot"></span> 
-        <span>Live Synced via JSONBin.io (Bin ID: ${syncConfig.binId.substring(0, 8)}...)</span>
+        <span>Live Synced via Public Cloud Bin (${syncConfig.binId.substring(0, 8)}...)</span>
       `;
     } else {
       syncStatusBanner.innerHTML = `
-        <span style="color: var(--accent-amber);">ℹ️ Local Storage Mode (Host: Click settings to link JSONBin for real-time guest sync)</span>
+        <span style="color: var(--accent-amber);">ℹ️ Local Storage Mode (Click settings to set your Public Bin ID)</span>
       `;
     }
   }
@@ -447,7 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
     const searchQuery = searchInput.value.toLowerCase().trim();
 
-    // Compute total claims per item across all RSVPs
     const itemClaimsMap = {};
 
     rsvpsData.forEach(rsvp => {
@@ -466,7 +452,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Filter items
     const filtered = itemsData.filter(item => {
       if (activeFilter === 'big' && item.category !== 'big') return false;
       if (activeFilter === 'small' && item.category !== 'small') return false;
@@ -665,7 +650,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    // Trigger JSONBin cloud persistence
     persistRsvpsToJsonBin();
   }
 
@@ -691,7 +675,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    // Trigger JSONBin cloud persistence
     persistRsvpsToJsonBin();
     showToast(`RSVP Saved! Thank you, ${currentUser.name}! 🎉`);
   }
