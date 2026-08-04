@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Active Keyless Cloud Storage URL
   const CLOUD_STORAGE_URL = 'https://jsonblob.com/api/jsonBlob/019fcb73-a15e-7f5b-b36b-5abe3adbbce9';
-  const POLL_INTERVAL_SECONDS = 5; // Smooth 5-second polling
+  const POLL_INTERVAL_SECONDS = 15; // 15-second polling — balances freshness with jsonblob rate limits
   const SECRET_PASSPHRASE = 'banana';
 
   // BroadcastChannel for instant cross-tab / incognito sync
@@ -250,24 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Push Update to Cloud ---
+  // --- Push Update to Cloud (read-before-write to prevent concurrent-user race conditions) ---
   async function persistRsvpsToCloud() {
     saveUserToLocalStorage();
-
-    // Merge current user directly into in-memory rsvpsData
-    rsvpsData = mergeRsvpsArrays(rsvpsData, currentUser);
-    saveCachedRsvps(rsvpsData);
-
-    renderItems();
-    renderRoster();
-    updateRuleProgressBanner();
-
-    // Broadcast update to open tabs
-    if (syncChannel) {
-      try {
-        syncChannel.postMessage({ rsvps: rsvpsData });
-      } catch (e) {}
-    }
 
     if (isSyncing) {
       pendingSync = true;
@@ -276,8 +261,33 @@ document.addEventListener('DOMContentLoaded', () => {
     isSyncing = true;
 
     try {
-      let writeSuccess = false;
+      // Step 1: Fetch the freshest cloud state so we never overwrite a concurrent user's claim
+      let base = rsvpsData;
+      try {
+        const freshRes = await fetch(`${CLOUD_STORAGE_URL}?t=${Date.now()}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (freshRes.ok) {
+          const payload = await freshRes.json();
+          if (Array.isArray(payload)) base = payload;
+        }
+      } catch (e) { /* network error — fall back to last known rsvpsData */ }
 
+      // Step 2: Merge current user into the freshest known state
+      rsvpsData = mergeRsvpsArrays(base, currentUser);
+      saveCachedRsvps(rsvpsData);
+
+      renderItems();
+      renderRoster();
+      updateRuleProgressBanner();
+
+      // Broadcast to other tabs on the same origin
+      if (syncChannel) {
+        try { syncChannel.postMessage({ rsvps: rsvpsData }); } catch (e) {}
+      }
+
+      // Step 3: Write the merged state back to cloud
+      let writeSuccess = false;
       try {
         const putRes = await fetch(CLOUD_STORAGE_URL, {
           method: 'PUT',
@@ -287,16 +297,10 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           body: JSON.stringify(rsvpsData)
         });
-        if (putRes.ok || putRes.status === 200) {
-          writeSuccess = true;
-        }
+        if (putRes.ok || putRes.status === 200) writeSuccess = true;
       } catch (e) {}
 
-      if (writeSuccess) {
-        showToast(`✅ Synced to Cloud Live!`);
-      } else {
-        showToast(`💾 Saved locally!`);
-      }
+      showToast(writeSuccess ? `✅ Synced to Cloud Live!` : `💾 Saved locally!`);
     } catch (e) {
       console.error('Failed to sync to Cloud', e);
     } finally {
@@ -309,63 +313,91 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Secret Passphrase Master Reset ("banana") ---
-  async function handleSecretReset() {
-    const inputPassphrase = prompt('⚠️ PASSPHRASE PROTECTED MASTER RESET:\nEnter passphrase to delete ALL guest RSVPs and reset all item availability:');
+  function handleSecretReset() {
+    // Step 1: ask for passphrase via custom modal
+    modalTitle.innerHTML = `🧹 Organiser Reset`;
+    modalBody.innerHTML = `
+      <p style="margin-bottom: 12px;">This will <strong>permanently wipe all RSVPs and item claims</strong> from the cloud. Use only to clear test data.</p>
+      <label style="font-size: 0.85rem; font-weight: 600; color: var(--pine-green);">Passphrase</label>
+      <input id="reset-passphrase-input" type="password" placeholder="Enter passphrase…"
+        style="margin-top: 6px; width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;" />
+      <p id="reset-error-msg" style="color: #e53e3e; font-size: 0.82rem; margin-top: 8px; display: none;">❌ Incorrect passphrase.</p>
+    `;
+    qtyStepperContainer.style.display = 'none';
+    modalConfirmBtn.textContent = 'Reset Everything';
+    modalConfirmBtn.style.background = '#e53e3e';
 
-    if (!inputPassphrase) return;
+    modalConfirmBtn.onclick = async () => {
+      const input = document.getElementById('reset-passphrase-input');
+      const errorMsg = document.getElementById('reset-error-msg');
 
-    if (inputPassphrase.trim().toLowerCase() === SECRET_PASSPHRASE) {
-      if (!confirm('Are you 100% sure you want to WIPE the entire guest roster and make ALL items 100% available again?')) return;
-
-      // 1. Wipe memory & current user state
-      rsvpsData = [];
-      currentUser = {
-        name: '',
-        initials: '',
-        attending: 'yes',
-        guestsCount: 1,
-        notes: '',
-        claimedItems: []
-      };
-
-      // 2. Clear browser local storage & cache
-      localStorage.removeItem('celebrating_me_user');
-      localStorage.removeItem('mx_cookout_user');
-      localStorage.removeItem('cookout_rsvps_cache');
-
-      // 3. Reset form inputs & notices
-      if (rsvpForm) rsvpForm.reset();
-      if (returningGuestNotice) returningGuestNotice.innerHTML = '';
-
-      // Broadcast clear to open tabs
-      if (syncChannel) {
-        try {
-          syncChannel.postMessage({ rsvps: [] });
-        } catch (e) {}
+      if (!input || input.value.trim().toLowerCase() !== SECRET_PASSPHRASE) {
+        errorMsg.style.display = 'block';
+        if (input) input.focus();
+        return;
       }
 
-      // 4. PUT empty array [] to Verified Cloud Endpoint
-      try {
-        await fetch(CLOUD_STORAGE_URL, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify([])
-        });
-      } catch (e) {}
+      // Step 2: confirmed correct passphrase — show final confirm step
+      modalTitle.innerHTML = `⚠️ Are you sure?`;
+      modalBody.innerHTML = `<p>This will wipe <strong>all guest RSVPs and item claims</strong> from the cloud and reset everything to zero. This cannot be undone.</p>`;
+      modalConfirmBtn.textContent = '🗑️ Yes, wipe everything';
 
-      // 5. Force immediate re-render of 100% clean state
-      renderItems();
-      renderRoster();
-      updateRuleProgressBanner();
+      modalConfirmBtn.onclick = async () => {
+        closeModal();
+        modalConfirmBtn.style.background = '';
 
-      alert('🧹 MASTER RESET COMPLETE!\nThe guest roster has been cleared from the cloud and all items are now 100% available!');
-      showToast('🧹 Roster & Items Completely Reset!');
-    } else {
-      alert('❌ Incorrect passphrase! Access denied.');
-    }
+        // Wipe memory & current user state
+        rsvpsData = [];
+        currentUser = {
+          name: '',
+          initials: '',
+          attending: 'yes',
+          guestsCount: 1,
+          notes: '',
+          claimedItems: []
+        };
+
+        // Clear local storage & cache
+        localStorage.removeItem('celebrating_me_user');
+        localStorage.removeItem('mx_cookout_user');
+        localStorage.removeItem('cookout_rsvps_cache');
+
+        // Reset form inputs
+        if (rsvpForm) rsvpForm.reset();
+        if (returningGuestNotice) returningGuestNotice.innerHTML = '';
+
+        // Broadcast clear to other open tabs
+        if (syncChannel) {
+          try { syncChannel.postMessage({ rsvps: [] }); } catch (e) {}
+        }
+
+        // Write empty array to cloud
+        try {
+          await fetch(CLOUD_STORAGE_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify([])
+          });
+        } catch (e) {}
+
+        renderItems();
+        renderRoster();
+        updateRuleProgressBanner();
+        showToast('🧹 Roster & all claims wiped!');
+      };
+    };
+
+    modalCancelBtn.onclick = () => {
+      modalConfirmBtn.style.background = '';
+      closeModal();
+    };
+
+    modalOverlay.classList.add('active');
+    // Focus the passphrase input after modal opens
+    setTimeout(() => {
+      const input = document.getElementById('reset-passphrase-input');
+      if (input) input.focus();
+    }, 50);
   }
 
   // --- Floating Confirm Button Trigger ---
