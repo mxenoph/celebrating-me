@@ -1102,6 +1102,12 @@ body {
   margin-bottom: 20px;
 }
 
+/* Override centering styles when story-card is inside the grid */
+.intro-entertainment-grid > .story-card {
+  margin: 0;
+  max-width: none;
+}
+
 .entertainment-panel {
   padding: 24px 20px;
 }
@@ -1246,6 +1252,12 @@ body {
 
 .btn-fuzzy-load:hover {
   background: #b45309;
+}
+
+/* Override centering when water-alert is inside a section panel */
+#bring-list-section .water-alert {
+  margin: 0 0 16px 0;
+  max-width: none;
 }
 
 /* Responsive Overrides */
