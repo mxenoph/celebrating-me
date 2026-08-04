@@ -817,18 +817,48 @@ body {
 }
 
 .btn-claim-qty {
-  padding: 5px 14px;
-  background: rgba(30, 86, 49, 0.08);
-  border: 1px solid var(--accent-pine);
-  color: var(--accent-pine);
+  padding: 6px 14px;
   border-radius: var(--radius-pill);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.btn-claim-qty:hover {
+.btn-claim-action {
+  background: var(--accent-pine);
+  color: #ffffff !important;
+  border: 1px solid var(--accent-pine);
+}
+
+.btn-claim-action:hover {
+  background: var(--accent-emerald);
+  border-color: var(--accent-emerald);
+  box-shadow: 0 4px 12px rgba(46, 139, 87, 0.3);
+}
+
+.btn-unclaim-action {
+  background: rgba(220, 53, 69, 0.08);
+  color: #c0392b !important;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.btn-unclaim-action:hover {
+  background: #c0392b;
+  color: #ffffff !important;
+  border-color: #c0392b;
+}
+
+.btn-status-indicator {
+  background: rgba(30, 86, 49, 0.08);
+  border: 1px solid var(--accent-pine);
+  color: var(--accent-pine);
+}
+
+.btn-status-indicator:hover {
   background: var(--accent-pine);
   color: #ffffff;
 }

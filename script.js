@@ -1,9 +1,10 @@
 /* ==========================================================================
-   CELEBRATING ME - JAVASCRIPT LOGIC (RELIABLE ZERO-FLICKER CLOUD SYNC)
-   Audited & Fixed:
-   - Fixed Ghosting Bug: Never wipes memory on 429 / network errors
-   - Uses local cache fallback so cards NEVER appear & disappear
-   - Smooth 6-second polling prevents API rate-limiting
+   CELEBRATING ME - JAVASCRIPT LOGIC (DIRECT CLAIM / UNCLAIM & CLOUD SYNC)
+   Features:
+   - "+ Claim" button puts item on hold (status: pending) & immediately writes to cloud
+   - "✕ Unclaim" button removes claim/hold & immediately writes to cloud to release item
+   - Floating 💾 Save button confirms all "on hold" items (status: confirmed)
+   - Detailed Item Summaries on Guest Roster Cards
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,12 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     claimedItems: [] // array of { itemId, quantity, status: 'pending' | 'confirmed' }
   };
 
-  // Verified Active Keyless Storage URL
-  const CLOUD_STORAGE_URL = 'https://jsonblob.com/api/jsonBlob/019fc18d-4418-7f05-914b-572854103832';
-  const POLL_INTERVAL_SECONDS = 6; // Smooth 6-second polling to prevent 429 rate limits
+  // Active Keyless Cloud Storage URL
+  const CLOUD_STORAGE_URL = 'https://jsonblob.com/api/jsonBlob/019fcb73-a15e-7f5b-b36b-5abe3adbbce9';
+  const POLL_INTERVAL_SECONDS = 5; // Smooth 5-second polling
   const SECRET_PASSPHRASE = 'banana';
 
-  // BroadcastChannel for instant cross-tab sync (same browser, same profile only — does not sync across incognito windows)
+  // BroadcastChannel for instant cross-tab / incognito sync
   let syncChannel = null;
   if ('BroadcastChannel' in window) {
     try {
@@ -44,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeItemForModal = null;
   let selectedModalQty = 1;
   let isSyncing = false;
-  let pendingSync = false; // dirty flag: true when a save was skipped because isSyncing was true
+  let pendingSync = false;
 
   // --- DOM Elements ---
   const countdownDays = document.getElementById('days');
@@ -235,29 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
           rsvpsData = payload;
           saveCachedRsvps(rsvpsData);
 
-          if (currentUser.name) {
-            const cloudEntry = rsvpsData.find(r => r.name && r.name.toLowerCase() === currentUser.name.toLowerCase());
-            if (cloudEntry) {
-              // Cloud already has this user — treat cloud as source of truth.
-              // Preserve any new local pending items that haven't been pushed yet.
-              const newLocalPending = currentUser.claimedItems.filter(lc =>
-                lc.status === 'pending' && !cloudEntry.claimedItems.find(cc => cc.itemId === lc.itemId)
-              );
-              currentUser.claimedItems = [...cloudEntry.claimedItems, ...newLocalPending];
-              currentUser.attending = cloudEntry.attending || currentUser.attending;
-              currentUser.guestsCount = cloudEntry.guestsCount || currentUser.guestsCount;
-              currentUser.notes = cloudEntry.notes !== undefined ? cloudEntry.notes : currentUser.notes;
-              currentUser.initials = cloudEntry.initials || currentUser.initials;
-              saveUserToLocalStorage();
-              // If there are brand-new pending items locally, reflect them in the display array too
-              if (newLocalPending.length > 0) {
-                const idx = rsvpsData.findIndex(r => r.name.toLowerCase() === currentUser.name.toLowerCase());
-                if (idx !== -1) rsvpsData[idx] = { ...cloudEntry, claimedItems: [...cloudEntry.claimedItems, ...newLocalPending] };
-              }
-            } else {
-              // User not yet in cloud — add their local state to the display array
-              syncCurrentUserWithRsvps();
-            }
+          if (currentUser.name && rsvpsData.length > 0) {
+            syncCurrentUserWithRsvps();
           }
 
           renderItems();
@@ -265,7 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
           updateRuleProgressBanner();
         }
       }
-      // CRITICAL FIX: If fetch fails (429 or network error), DO NOT overwrite rsvpsData! Keep existing memory!
     } catch (err) {
       console.warn('Error fetching live data (retaining existing view):', err);
     }
@@ -291,11 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (isSyncing) {
-      pendingSync = true; // remember to retry once the in-flight PUT finishes
+      pendingSync = true;
       return;
     }
     isSyncing = true;
-    pendingSync = false;
 
     try {
       let writeSuccess = false;
@@ -324,9 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       isSyncing = false;
       if (pendingSync) {
-        // A save was queued while this PUT was in flight — retry with the latest state
         pendingSync = false;
-        setTimeout(persistRsvpsToCloud, 50);
+        setTimeout(persistRsvpsToCloud, 100);
       }
     }
   }
@@ -635,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="item-header">
               <div class="checkbox-wrapper">
                 <input type="checkbox" id="check-${item.id}" class="item-checkbox" ${isChecked ? 'checked' : ''} data-id="${item.id}">
-                <label for="check-${item.id}" class="checkbox-custom ${userStatus === 'pending' ? 'pending-check' : ''}" data-id="${item.id}">
+                <label for="check-${item.id}" class="checkbox-custom ${userStatus === 'pending' ? 'pending-check' : ''}" data-id="${item.id}" data-action="toggle-check">
                   <span class="initials-badge">${displayInitials}</span>
                 </label>
               </div>
@@ -664,9 +641,20 @@ document.addEventListener('DOMContentLoaded', () => {
               ` : ''}
             </div>
 
-            <button class="btn-claim-qty" data-id="${item.id}">
-              ${isChecked ? `${userStatus === 'confirmed' ? '✅ Claimed' : '⏳ Pending'} (${userClaimQty})` : `Select Item`}
-            </button>
+            <div class="item-actions-group" style="display: flex; align-items: center; gap: 6px;">
+              ${isChecked ? `
+                <button class="btn-claim-qty btn-status-indicator" data-action="edit" data-id="${item.id}">
+                  ${userStatus === 'confirmed' ? '✅ Claimed' : '⏳ On Hold'} (${userClaimQty})
+                </button>
+                <button class="btn-claim-qty btn-unclaim-action" data-action="unclaim" data-id="${item.id}" title="Remove claim & release item for everyone">
+                  ✕ Unclaim
+                </button>
+              ` : `
+                <button class="btn-claim-qty btn-claim-action" data-action="claim" data-id="${item.id}">
+                  + Claim
+                </button>
+              `}
+            </div>
           </div>
         </div>
       `;
@@ -676,11 +664,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function attachItemEventListeners() {
-    document.querySelectorAll('.checkbox-custom, .btn-claim-qty').forEach(element => {
+    document.querySelectorAll('.item-card [data-action]').forEach(element => {
       element.addEventListener('click', (e) => {
         e.preventDefault();
+        const action = element.dataset.action;
         const itemId = element.dataset.id;
-        handleItemClick(itemId);
+        
+        if (action === 'unclaim') {
+          unclaimItem(itemId);
+        } else if (action === 'claim') {
+          claimItemDirectly(itemId);
+        } else if (action === 'edit' || action === 'toggle-check') {
+          handleItemClick(itemId);
+        }
       });
     });
   }
@@ -701,10 +697,36 @@ document.addEventListener('DOMContentLoaded', () => {
     openQuantityModal(item);
   }
 
+  // --- Directly Claim Item (+ Claim button) ---
+  function claimItemDirectly(itemId) {
+    const name = guestNameInput.value.trim();
+    if (!name) {
+      showPreRsvpModal();
+      return;
+    }
+
+    currentUser.name = name;
+    currentUser.initials = guestInitialsInput.value.trim().toUpperCase() || getInitials(name);
+
+    const item = itemsData.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (item.totalNeeded > 1) {
+      openQuantityModal(item);
+    } else {
+      saveItemClaim(itemId, 1, 'pending');
+    }
+  }
+
+  // --- Directly Unclaim Item (✕ Unclaim button) ---
+  function unclaimItem(itemId) {
+    saveItemClaim(itemId, 0);
+  }
+
   function showPreRsvpModal() {
     modalTitle.innerHTML = `⚠️ Please Enter Your Name First!`;
     modalBody.innerHTML = `
-      <p style="margin-bottom: 12px;">Before selecting items from the list, please enter your name in the <strong>RSVP form</strong> so everyone knows who is bringing what!</p>
+      <p style="margin-bottom: 12px;">Before claiming items from the list, please enter your name in the <strong>RSVP form</strong> so everyone knows who is bringing what!</p>
     `;
     qtyStepperContainer.style.display = 'none';
 
@@ -723,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let claimedByOthers = 0;
     rsvpsData.forEach(r => {
-      if (r.name.toLowerCase() !== currentUser.name.toLowerCase() && r.claimedItems) {
+      if (r.name && r.name.toLowerCase() !== currentUser.name.toLowerCase() && r.claimedItems) {
         const c = r.claimedItems.find(x => x.itemId === item.id);
         if (c) claimedByOthers += c.quantity;
       }
@@ -740,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Total needed: <strong>${item.totalNeeded} ${item.unit}</strong> | Claimed by others: <strong>${claimedByOthers}</strong> | Available: <strong>${maxAvailable}</strong>
       </div>
       <p style="font-size: 0.82rem; color: var(--accent-amber); margin-top: 8px;">
-        💡 <em>This holds the item temporarily. Click the floating 💾 bubble at the bottom right anytime to lock in your choice!</em>
+        💡 <em>Claiming puts the item on ⏳ HOLD for everyone in real time. Click the floating 💾 bubble anytime to lock in your choice!</em>
       </p>
     `;
 
@@ -761,9 +783,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    modalConfirmBtn.textContent = selectedModalQty === 0 ? 'Remove Hold' : 'Temporarily Hold Item';
+    modalConfirmBtn.textContent = selectedModalQty === 0 ? '✕ Unclaim Item' : '⏳ Put on Hold (Claim)';
     modalConfirmBtn.onclick = () => {
-      saveItemClaim(item.id, selectedModalQty);
+      saveItemClaim(item.id, selectedModalQty, 'pending');
       closeModal();
     };
 
@@ -774,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalOverlay.classList.remove('active');
   }
 
-  function saveItemClaim(itemId, quantity) {
+  function saveItemClaim(itemId, quantity, forceStatus = null) {
     const existingIndex = currentUser.claimedItems.findIndex(c => c.itemId === itemId);
 
     if (quantity <= 0) {
@@ -782,9 +804,11 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       if (existingIndex !== -1) {
         currentUser.claimedItems[existingIndex].quantity = quantity;
-        currentUser.claimedItems[existingIndex].status = currentUser.claimedItems[existingIndex].status || 'pending';
+        if (forceStatus) {
+          currentUser.claimedItems[existingIndex].status = forceStatus;
+        }
       } else {
-        currentUser.claimedItems.push({ itemId, quantity, status: 'pending' });
+        currentUser.claimedItems.push({ itemId, quantity, status: forceStatus || 'pending' });
       }
     }
 
@@ -794,8 +818,14 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
+    // Immediately push update to cloud so everyone sees hold/unclaim in real time!
     persistRsvpsToCloud();
-    showToast(quantity <= 0 ? `Unselected item!` : `Temporarily selected item! Click 💾 bubble to confirm.`);
+    
+    if (quantity <= 0) {
+      showToast(`✕ Unclaimed item! (Released for everyone)`);
+    } else {
+      showToast(`⏳ Item on Hold! Click 💾 bubble to confirm.`);
+    }
   }
 
   function handleRsvpSubmit(e) {
@@ -813,6 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentUser.guestsCount = parseInt(guestCountInput.value) || 1;
     currentUser.notes = guestNotesInput.value.trim();
 
+    // Lock in all on-hold (pending) items to confirmed!
     currentUser.claimedItems.forEach(c => {
       c.status = 'confirmed';
     });
@@ -824,8 +855,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
+    // Sync confirmed state to cloud
     persistRsvpsToCloud();
-    showToast(`🎉 RSVP & Gifts Updated! Thank you, ${currentUser.name}!`);
+    showToast(`🎉 RSVP & Gifts Locked In! Thank you, ${currentUser.name}!`);
   }
 
   // --- RENDER GUEST ROSTER WITH DETAILED ITEM SUMMARIES ---
@@ -854,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <li style="font-size: 0.85rem; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
               <span>${icon} <strong>${c.quantity}x ${name}</strong></span>
               <span class="cat-pill ${cat}" style="font-size: 0.7rem; padding: 1px 6px;">${cat === 'big' ? 'Big' : 'Small'}</span>
-              <span style="font-size: 0.72rem; color: ${c.status === 'pending' ? 'var(--accent-amber)' : 'var(--forest-moss)'};">(${statusBadge})</span>
+              <span style="font-size: 0.72rem; color: ${c.status === 'pending' ? 'var(--accent-amber)' : 'var(--forest-moss)'}; font-weight: 600;">(${statusBadge})</span>
             </li>
           `);
         });
