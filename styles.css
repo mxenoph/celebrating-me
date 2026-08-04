@@ -1093,6 +1093,104 @@ body {
   }
 }
 
+/* Message Board — Speech Bubbles */
+.message-board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.speech-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.speech-bubble:nth-child(even) {
+  flex-direction: row-reverse;
+}
+
+.speech-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-pine), var(--accent-emerald));
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(30, 86, 49, 0.2);
+}
+
+.speech-content {
+  background: #f0f7f3;
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  padding: 10px 16px;
+  max-width: 75%;
+  position: relative;
+}
+
+.speech-bubble:nth-child(even) .speech-content {
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 4px;
+  background: #fefce8;
+  border-color: rgba(217, 119, 6, 0.18);
+}
+
+.speech-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-pine);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.speech-bubble:nth-child(even) .speech-name {
+  text-align: right;
+  color: var(--accent-amber);
+}
+
+.speech-text {
+  font-size: 0.9rem;
+  color: var(--text-main);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* Fuzzy name match button */
+.fuzzy-match-banner {
+  background: rgba(245, 176, 65, 0.12) !important;
+  border-color: rgba(217, 119, 6, 0.3) !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-fuzzy-load {
+  background: var(--accent-amber);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 5px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.btn-fuzzy-load:hover {
+  background: #b45309;
+}
+
 /* Responsive Overrides */
 @media (max-width: 1100px) {
   .items-grid {

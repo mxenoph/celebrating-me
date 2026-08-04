@@ -60,6 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const guestCountInput = document.getElementById('guest-count');
   const guestNotesInput = document.getElementById('guest-notes');
   const returningGuestNotice = document.getElementById('returning-guest-notice');
+  const messageBoardSection = document.getElementById('message-board-section');
+  const messageBoardContainer = document.getElementById('message-board-container');
 
   const ruleBanner = document.getElementById('rule-banner');
   const itemsContainer = document.getElementById('items-container');
@@ -191,26 +193,34 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Check if guest exists in rsvpsData
-    const existingRsvp = rsvpsData.find(r => r.name && r.name.toLowerCase() === inputName.toLowerCase());
+    const result = findRsvpMatch(inputName, rsvpsData);
 
-    if (existingRsvp) {
-      currentUser.initials = existingRsvp.initials || getInitials(inputName);
-      currentUser.attending = existingRsvp.attending || 'yes';
-      currentUser.guestsCount = existingRsvp.guestsCount || 1;
-      currentUser.notes = existingRsvp.notes || '';
-      currentUser.claimedItems = existingRsvp.claimedItems ? [...existingRsvp.claimedItems] : [];
-
-      guestInitialsInput.value = currentUser.initials;
-      guestAttendingSelect.value = currentUser.attending;
-      guestCountInput.value = currentUser.guestsCount;
-      guestNotesInput.value = currentUser.notes;
-
+    if (result && result.type === 'exact') {
+      loadRsvpDataIntoForm(result.rsvp);
       returningGuestNotice.innerHTML = `
         <div class="returning-guest-banner">
-          <span>👋 Welcome back, <strong>${existingRsvp.name}</strong>! Your previously saved RSVP and item claims have been loaded. You can modify your choices below.</span>
+          <span>👋 Welcome back, <strong>${result.rsvp.name}</strong>! Your previously saved RSVP and item claims have been loaded. You can modify your choices below.</span>
         </div>
       `;
+    } else if (result && result.type === 'fuzzy') {
+      returningGuestNotice.innerHTML = `
+        <div class="returning-guest-banner fuzzy-match-banner">
+          <span>🤔 Did you mean <strong>${result.rsvp.name}</strong>?</span>
+          <button class="btn-fuzzy-load" data-rsvp-name="${result.rsvp.name}">Yes, load my info →</button>
+        </div>
+      `;
+      document.querySelector('.btn-fuzzy-load')?.addEventListener('click', () => {
+        guestNameInput.value = result.rsvp.name;
+        currentUser.name = result.rsvp.name;
+        loadRsvpDataIntoForm(result.rsvp);
+        returningGuestNotice.innerHTML = `
+          <div class="returning-guest-banner">
+            <span>👋 Welcome back, <strong>${result.rsvp.name}</strong>! Your previously saved RSVP and item claims have been loaded. You can modify your choices below.</span>
+          </div>
+        `;
+        renderItems();
+        updateRuleProgressBanner();
+      });
     } else {
       returningGuestNotice.innerHTML = '';
       if (!guestInitialsInput.dataset.userEdited) {
@@ -474,9 +484,52 @@ document.addEventListener('DOMContentLoaded', () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
+  // --- Fuzzy Name Matching (Levenshtein) ---
+  function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = [];
+    for (let i = 0; i <= m; i++) dp[i] = [i];
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  function findRsvpMatch(inputName, rsvpsList) {
+    const norm = inputName.toLowerCase().trim();
+    const exact = rsvpsList.find(r => r.name && r.name.toLowerCase() === norm);
+    if (exact) return { rsvp: exact, type: 'exact' };
+
+    let best = null, bestDist = Infinity;
+    rsvpsList.forEach(r => {
+      if (!r.name) return;
+      const dist = levenshtein(norm, r.name.toLowerCase());
+      const threshold = Math.max(2, Math.floor(Math.max(norm.length, r.name.length) * 0.25));
+      if (dist < bestDist && dist <= threshold) { bestDist = dist; best = r; }
+    });
+    return best ? { rsvp: best, type: 'fuzzy' } : null;
+  }
+
+  function loadRsvpDataIntoForm(rsvp) {
+    currentUser.initials = rsvp.initials || getInitials(rsvp.name);
+    currentUser.attending = rsvp.attending || 'yes';
+    currentUser.guestsCount = rsvp.guestsCount || 1;
+    currentUser.notes = rsvp.notes || '';
+    currentUser.claimedItems = rsvp.claimedItems ? [...rsvp.claimedItems] : [];
+    guestInitialsInput.value = currentUser.initials;
+    guestAttendingSelect.value = currentUser.attending;
+    guestCountInput.value = currentUser.guestsCount;
+    guestNotesInput.value = currentUser.notes;
+  }
+
   // --- Countdown Timer ---
   function initCountdownTimer() {
-    const targetDate = new Date('2026-08-08T11:30:00+03:00').getTime();
+    const targetDate = new Date('2026-08-08T12:00:00+03:00').getTime();
 
     function update() {
       const now = new Date().getTime();
@@ -938,11 +991,32 @@ document.addEventListener('DOMContentLoaded', () => {
             <h4>${rsvp.name} (${rsvp.guestsCount} guest${rsvp.guestsCount > 1 ? 's' : ''})</h4>
             <p>${attendingBadge}</p>
             ${itemsSummaryHtml}
-            ${rsvp.notes ? `<p style="font-style: italic; color: var(--text-muted); margin-top: 6px; font-size: 0.82rem;">"${rsvp.notes}"</p>` : ''}
           </div>
         </div>
       `;
     }).join('');
+
+    renderMessageBoard();
+  }
+
+  // --- Message Board: speech bubbles for guests who left a note ---
+  function renderMessageBoard() {
+    if (!messageBoardContainer || !messageBoardSection) return;
+    const withNotes = rsvpsData.filter(r => r.notes && r.notes.trim());
+    if (!withNotes.length) {
+      messageBoardSection.style.display = 'none';
+      return;
+    }
+    messageBoardSection.style.display = '';
+    messageBoardContainer.innerHTML = withNotes.map(r => `
+      <div class="speech-bubble">
+        <div class="speech-avatar">${r.initials || getInitials(r.name)}</div>
+        <div class="speech-content">
+          <div class="speech-name">${r.name}</div>
+          <div class="speech-text">“${r.notes}”</div>
+        </div>
+      </div>
+    `).join('');
   }
 
   function showToast(message) {
