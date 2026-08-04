@@ -1,64 +1,46 @@
 [
   {
     "id": "pork_bbq",
-    "name": "Pork BBQ Grill (Foukou)",
+    "name": "Pork BBQ Grill (Foukou) + skewers",
     "category": "big",
     "totalNeeded": 1,
     "unit": "foukou grill",
-    "note": "As MX is bringing the meat she will be bringing it on skewers already, so we are using her bbq but whoever picks this will have to take the bbq back as afterwards MX is going camping!",
+    "note": "⏰ Punctuality Required: You are the Master of Skewers! Arrive on time to help prep the meat—a hungry crowd up in the pine trees is not a forgiving crowd.",
     "icon": "🔥"
   },
   {
     "id": "coal_firelighters",
-    "name": "Coal + Solid Firelighters (στερεό πετρέλαιο)",
+    "name": "Coal + Solid Firelighters (στερεό πετρέλαιο) + Tongs",
     "category": "big",
-    "totalNeeded": 2,
+    "totalNeeded": 1,
     "unit": "bags/kits",
-    "note": "Essential for getting the souvlakia coals red hot!",
+    "note": "🔥 Zero Tardiness Allowed: If you pick this, be on time! Otherwise, everyone will know exactly whose name to chant when hanger strikes at 13:30.",
     "icon": "🪵"
-  },
-  {
-    "id": "beers",
-    "name": "Beers x 8 (4 packs needed)",
-    "category": "big",
-    "totalNeeded": 4,
-    "unit": "8-packs",
-    "note": "4 packs of 8 beers total needed.",
-    "icon": "🍺"
   },
   {
     "id": "foil_trays",
     "name": "Foil Trays",
-    "category": "big",
+    "category": "small",
     "totalNeeded": 2,
-    "unit": "packs",
-    "note": "For keeping cooked souvlakia hot and ready.",
+    "unit": "trays",
+    "note": "🥩 The VIP Meat Lounge: Essential for resting cooked souvlakia and general Grillmaster operations. Unsung hero status guaranteed.",
     "icon": "🍱"
   },
   {
-    "id": "fruits",
-    "name": "Fresh Summer Fruits",
-    "category": "big",
-    "totalNeeded": 2,
-    "unit": "baskets/bowls",
-    "note": "Watermelon, melon, cherries, or peaches for dessert.",
-    "icon": "🍉"
-  },
-  {
     "id": "thermos",
-    "name": "Thermos / Ice Cooler",
+    "name": "Ice Cooler + Ice",
     "category": "big",
-    "totalNeeded": 2,
+    "totalNeeded": 1,
     "unit": "units",
-    "note": "Filled with ice or chilled beverages.",
+    "note": "🧊 Sync Up: Please coordinate directly with whoever is on drinks duty so we achieve peak cooler equilibrium (and don't end up with 50kg of ice and no cups).",
     "icon": "🧊"
   },
   {
     "id": "plates",
     "name": "Single Use Plates",
     "category": "small",
-    "totalNeeded": 2,
-    "unit": "packs",
+    "totalNeeded": 3,
+    "unit": "packs of 10",
     "note": "Biodegradable/sturdy paper plates preferred.",
     "icon": "🍽️"
   },
@@ -66,10 +48,91 @@
     "id": "cups",
     "name": "Single Use Cups",
     "category": "small",
-    "totalNeeded": 2,
-    "unit": "packs",
+    "totalNeeded": 3,
+    "unit": "packs of 10",
     "note": "For cold drinks & beer.",
     "icon": "🥤"
+  },
+  {
+    "id": "napkins",
+    "name": "Napkins",
+    "category": "small",
+    "totalNeeded": 1,
+    "unit": "pack",
+    "note": "Paper napkins.",
+    "icon": "🧻"
+  },
+  {
+    "id": "kitchen_roll",
+    "name": "Kitchen Roll",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "rolls",
+    "note": "Heavy duty paper towels.",
+    "icon": "📜"
+  },
+  {
+    "id": "detergent_kit",
+    "name": "Dish Detergent + Sponge + Trash Bags",
+    "category": "small",
+    "totalNeeded": 1,
+    "unit": "kit",
+    "note": "Clean-up essentials to leave Trooditisa spotless!",
+    "icon": "🧽"
+  },
+  {
+    "id": "tablecloth",
+    "name": "Tablecloth",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "tablecloths",
+    "note": "Disposable or washable picnic table cover.",
+    "icon": "🏁"
+  },
+  {
+    "id": "seftalies",
+    "name": "Seftalies",
+    "category": "big",
+    "totalNeeded": 3,
+    "unit": "packs of 10",
+    "note": "Bring 3 packs of 10 of these juicy Cyprus classics for the grill.",
+    "icon": "🌯"
+  },
+  {
+    "id": "beers",
+    "name": "Beers x 6/8 (4 packs needed)",
+    "category": "big",
+    "totalNeeded": 4,
+    "unit": "6/8-packs",
+    "note": "🍻 The Hydration Specialist: Target is ~30 beers (about 2 per person). Pre-chill them at home, and ideally coordinate a pre-game pit stop with the Cooler Boss so cold beer meets ice before we hit the mountains!",
+    "icon": "🍺"
+  },
+  {
+    "id": "sparkling_water",
+    "name": "Sparkling Water (pack of 6)",
+    "category": "big",
+    "totalNeeded": 1,
+    "unit": "pack of 6",
+    "note": "Fizzy refreshment for the non-beer crowd—chill it with the cooler.",
+    "icon": "💧"
+  },
+  {
+    "id": "fruits",
+    "name": "Fresh Summer Fruits",
+    "category": "big",
+    "totalNeeded": 2,
+    "unit": "baskets/bowls",
+    "note": "🍉 Nature's Sugar Rush: Bring juicy summer fruit (watermelon, nectarines, grapes) to revive everyone from their inevitable meat comas!",
+    "icon": "🍉"
+  },
+  {
+    "id": "halloumi",
+    "name": "Halloumi",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "blocks",
+    "note": "For grilling—the squeaky Cyprus classic everyone fights over.",
+    "icon": "🧀"
   },
   {
     "id": "salt",
@@ -85,7 +148,7 @@
     "name": "Onions (for salad & skewers)",
     "category": "small",
     "totalNeeded": 2,
-    "unit": "bags",
+    "unit": "onions",
     "note": "Thinly sliced for Cyprus salad & pita stuffing.",
     "icon": "🧅"
   },
@@ -93,8 +156,8 @@
     "id": "lemons",
     "name": "Lemons",
     "category": "small",
-    "totalNeeded": 3,
-    "unit": "bags",
+    "totalNeeded": 8,
+    "unit": "lemons",
     "note": "Plenty of fresh Cyprus lemons for the souvlakia!",
     "icon": "🍋"
   },
@@ -102,8 +165,8 @@
     "id": "tomatoes",
     "name": "Tomatoes",
     "category": "small",
-    "totalNeeded": 2,
-    "unit": "bags",
+    "totalNeeded": 1,
+    "unit": "bag",
     "note": "Ripe & firm for salads.",
     "icon": "🍅"
   },
@@ -111,19 +174,55 @@
     "id": "cucumber",
     "name": "Cucumbers",
     "category": "small",
-    "totalNeeded": 2,
-    "unit": "packs",
+    "totalNeeded": 1,
+    "unit": "bag",
     "note": "Fresh local cucumbers.",
     "icon": "🥒"
+  },
+  {
+    "id": "cabbage",
+    "name": "Cabbage",
+    "category": "small",
+    "totalNeeded": 1,
+    "unit": "head",
+    "note": "Shredded and ready to go",
+    "icon": "🥬"
   },
   {
     "id": "pitta",
     "name": "Cypriot Pitta Bread",
     "category": "small",
-    "totalNeeded": 4,
-    "unit": "packs",
+    "totalNeeded": 3,
+    "unit": "packs of 10",
     "note": "Fresh pitta to stuff warm souvlakia into.",
     "icon": "🥙"
+  },
+  {
+    "id": "parsley",
+    "name": "Fresh Parsley",
+    "category": "small",
+    "totalNeeded": 1,
+    "unit": "bunch",
+    "note": "Best to chop it beforehand if you can coordiante with the cooler bringer",
+    "icon": "🌿"
+  },
+  {
+    "id": "tzatsiki",
+    "name": "Tzatziki",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "tubs",
+    "note": "You don't have to make it, just bring it",
+    "icon": "🥣"
+  },
+  {
+    "id": "tahini",
+    "name": "Tahini",
+    "category": "small",
+    "totalNeeded": 2,
+    "unit": "tubs",
+    "note": "You don;t have to make it, just bring it",
+    "icon": "🫙"
   },
   {
     "id": "nuts",
@@ -149,79 +248,7 @@
     "category": "small",
     "totalNeeded": 2,
     "unit": "packs",
-    "note": "Light rice cake snacks.",
+    "note": "Something to munch on while we cook",
     "icon": "🍘"
-  },
-  {
-    "id": "tzatsiki",
-    "name": "Tzatziki",
-    "category": "small",
-    "totalNeeded": 2,
-    "unit": "tubs",
-    "note": "Creamy cucumber garlic dip.",
-    "icon": "🥣"
-  },
-  {
-    "id": "tahini",
-    "name": "Tahini",
-    "category": "small",
-    "totalNeeded": 2,
-    "unit": "tubs",
-    "note": "Rich sesame paste for the pitta.",
-    "icon": "🫙"
-  },
-  {
-    "id": "napkins",
-    "name": "Napkins",
-    "category": "small",
-    "totalNeeded": 2,
-    "unit": "packs",
-    "note": "Paper napkins.",
-    "icon": "🧻"
-  },
-  {
-    "id": "kitchen_roll",
-    "name": "Kitchen Roll",
-    "category": "small",
-    "totalNeeded": 2,
-    "unit": "rolls",
-    "note": "Heavy duty paper towels.",
-    "icon": "📜"
-  },
-  {
-    "id": "parsley",
-    "name": "Fresh Parsley",
-    "category": "small",
-    "totalNeeded": 2,
-    "unit": "bunches",
-    "note": "Finely chopped for pitta filling.",
-    "icon": "🌿"
-  },
-  {
-    "id": "cabbage",
-    "name": "Cabbage",
-    "category": "small",
-    "totalNeeded": 2,
-    "unit": "heads",
-    "note": "For shredding into Cypriot salad.",
-    "icon": "🥬"
-  },
-  {
-    "id": "detergent_kit",
-    "name": "Dish Detergent + Sponge + Trash Bags",
-    "category": "small",
-    "totalNeeded": 1,
-    "unit": "kit",
-    "note": "Clean-up essentials to leave Trooditisa spotless!",
-    "icon": "🧽"
-  },
-  {
-    "id": "tablecloth",
-    "name": "Tablecloth",
-    "category": "small",
-    "totalNeeded": 2,
-    "unit": "tablecloths",
-    "note": "Disposable or washable picnic table cover.",
-    "icon": "🏁"
   }
 ]
