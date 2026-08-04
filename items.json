@@ -14,7 +14,7 @@
     "category": "big",
     "totalNeeded": 1,
     "unit": "bags/kits",
-    "note": "🔥 Zero Tardiness Allowed: If you pick this, be on time! Otherwise, everyone will know exactly whose name to chant when hanger strikes at 13:30.",
+    "note": "⏰ Punctuality Required: If you pick this, be on time! Otherwise, everyone will know exactly whose name to chant when hanger strikes at 13:30.",
     "icon": "🪵"
   },
   {
@@ -23,16 +23,25 @@
     "category": "small",
     "totalNeeded": 2,
     "unit": "trays",
-    "note": "🥩 The VIP Meat Lounge: Essential for resting cooked souvlakia and general Grillmaster operations. Unsung hero status guaranteed.",
+    "note": "Essential for general grillmaster operations.",
     "icon": "🍱"
   },
   {
     "id": "thermos",
+    "name": "Thermos for souvlakia",
+    "category": "big",
+    "totalNeeded": 1,
+    "unit": "units",
+    "note": "Essential for keeping cooked souvlakia warm until serving time.",
+    "icon": "🥩 " 
+  },
+  {
+    "id": "cooler",
     "name": "Ice Cooler + Ice",
     "category": "big",
     "totalNeeded": 1,
     "unit": "units",
-    "note": "🧊 Sync Up: Please coordinate directly with whoever is on drinks duty so we achieve peak cooler equilibrium (and don't end up with 50kg of ice and no cups).",
+    "note": "Please coordinate directly with whoever is on drinks duty so we achieve peak cooler equilibrium and keep the drinks cold.",
     "icon": "🧊"
   },
   {
@@ -104,14 +113,14 @@
     "category": "big",
     "totalNeeded": 4,
     "unit": "6/8-packs",
-    "note": "🍻 The Hydration Specialist: Target is ~30 beers (about 2 per person). Pre-chill them at home, and ideally coordinate a pre-game pit stop with the Cooler Boss so cold beer meets ice before we hit the mountains!",
+    "note": "Target is ~30 beers (about 2 per person). Pre-chill them at home, and ideally coordinate a pre-game pit stop with the Cooler Boss so cold beer meets ice before we hit the mountains!",
     "icon": "🍺"
   },
   {
     "id": "sparkling_water",
-    "name": "Sparkling Water (pack of 6)",
+    "name": "Sparkling Water or sodas (pack of 6)",
     "category": "big",
-    "totalNeeded": 1,
+    "totalNeeded": 2,
     "unit": "pack of 6",
     "note": "Fizzy refreshment for the non-beer crowd—chill it with the cooler.",
     "icon": "💧"
