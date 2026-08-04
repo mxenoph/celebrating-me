@@ -596,9 +596,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ${badgeHtml}
         <div>${messageHtml}</div>
       </div>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">
-        Rule: 1 Big Item OR 2 Small Items
-      </div>
     `;
   }
 
