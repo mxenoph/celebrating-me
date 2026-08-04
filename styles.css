@@ -1093,6 +1093,45 @@ body {
   }
 }
 
+/* Entertainment Section */
+.entertainment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.entertainment-card {
+  background: #ffffff;
+  border: 1px solid rgba(109, 40, 217, 0.15);
+  border-left: 5px solid #7c3aed;
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.06);
+  transition: var(--transition);
+}
+
+.entertainment-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px rgba(109, 40, 217, 0.12);
+}
+
+.entertainment-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.cat-pill.entertainment-pill {
+  background: rgba(109, 40, 217, 0.1);
+  color: #6d28d9;
+  border: 1px solid rgba(109, 40, 217, 0.2);
+}
+
 /* Message Board — Speech Bubbles */
 .message-board {
   display: flex;
