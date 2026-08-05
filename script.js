@@ -251,10 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
           rsvpsData = data;
           saveCachedRsvps(rsvpsData);
 
-          if (currentUser.name && rsvpsData.length > 0) {
-            syncCurrentUserWithRsvps();
-          }
-
           renderItems();
           renderRoster();
           updateRuleProgressBanner();
@@ -470,13 +466,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        currentUser = { ...currentUser, ...parsed };
+        currentUser = {
+          ...currentUser,
+          name: parsed.name || '',
+          initials: parsed.initials || '',
+          claimedItems: Array.isArray(parsed.claimedItems) ? parsed.claimedItems : []
+        };
         if (currentUser.name) {
           guestNameInput.value = currentUser.name;
           guestInitialsInput.value = currentUser.initials || getInitials(currentUser.name);
-          guestAttendingSelect.value = currentUser.attending || 'yes';
-          guestCountInput.value = currentUser.guestsCount || 1;
-          guestNotesInput.value = currentUser.notes || '';
         }
       } catch (e) {
         console.error('LocalStorage parse error', e);
@@ -486,11 +484,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function saveUserToLocalStorage() {
     localStorage.setItem('celebrating_me_user', JSON.stringify(currentUser));
-  }
-
-  function syncCurrentUserWithRsvps() {
-    if (!currentUser.name) return;
-    rsvpsData = mergeRsvpsArrays(rsvpsData, currentUser);
   }
 
   // --- Initials Extractor ---
@@ -912,7 +905,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     saveUserToLocalStorage();
-    syncCurrentUserWithRsvps();
     renderItems();
     renderRoster();
     updateRuleProgressBanner();
@@ -948,7 +940,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     saveUserToLocalStorage();
-    syncCurrentUserWithRsvps();
 
     renderItems();
     renderRoster();
