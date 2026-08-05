@@ -25,8 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const JSONBIN_BIN_ID = '6a6ee55ef5f4af5e29e03b69';
   const JSONBIN_ACCESS_KEY = '$2a$10$NZNg5GPqV6Ip8a0LIiQL5.SgfOklPNGTruj8tf2SsWZNqvGRGpDSq';
   const CLOUD_STORAGE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
-  const POLL_INTERVAL_SECONDS = 15; // 15-second polling
+  const CLOUD_LATEST_URL  = `${CLOUD_STORAGE_URL}/latest`; // always fetch the newest version
+  const POLL_INTERVAL_SECONDS = 15;
   const SECRET_PASSPHRASE = 'banana';
+  const SESSION_INACTIVE_TTL_MS = 3 * 60 * 1000; // release pending holds after 3 min away
 
   // BroadcastChannel for instant cross-tab / incognito sync
   let syncChannel = null;
@@ -49,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedModalQty = 1;
   let isSyncing = false;
   let pendingSync = false;
+  let inactivityTimer = null;
+  let pollIntervalId = null;
 
   // --- DOM Elements ---
   const countdownDays = document.getElementById('days');
@@ -116,6 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
       renderItems();
     });
 
+    // Mark form fields as user-edited so reconcileReturningUser won't overwrite them
+    guestAttendingSelect.addEventListener('change', () => { guestAttendingSelect.dataset.userEdited = 'true'; });
+    guestCountInput.addEventListener('input', () => { guestCountInput.dataset.userEdited = 'true'; });
+    guestNotesInput.addEventListener('input', () => { guestNotesInput.dataset.userEdited = 'true'; });
+
     // RSVP Form Submit
     rsvpForm.addEventListener('submit', handleRsvpSubmit);
 
@@ -136,8 +145,21 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoster();
     updateRuleProgressBanner();
 
-    // Start Live Polling
-    setInterval(fetchLatestData, POLL_INTERVAL_SECONDS * 1000);
+    // Start Live Polling (pause when tab is hidden to conserve API quota)
+    pollIntervalId = setInterval(() => {
+      if (document.visibilityState !== 'hidden') fetchLatestData();
+    }, POLL_INTERVAL_SECONDS * 1000);
+
+    // Refetch on tab reactivation; start TTL timer when leaving
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        inactivityTimer = setTimeout(releasePendingHolds, SESSION_INACTIVE_TTL_MS);
+      } else {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = null;
+        fetchLatestData(); // always pull fresh on return
+      }
+    });
 
     // Modal Closes
     modalCancelBtn.addEventListener('click', closeModal);
@@ -236,10 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updateRuleProgressBanner();
   }
 
-  // --- Fetch Latest Data (Zero-Flicker Error-Resistant Fetch) ---
+  // --- Fetch Latest Data ---
   async function fetchLatestData() {
     try {
-      const bRes = await fetch(CLOUD_STORAGE_URL, {
+      // Use /latest to ensure jsonbin always returns the newest version, never a cached old one
+      const bRes = await fetch(CLOUD_LATEST_URL, {
         cache: 'no-store',
         headers: { 'Accept': 'application/json', 'X-Access-Key': JSONBIN_ACCESS_KEY }
       });
@@ -251,6 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
           rsvpsData = data;
           saveCachedRsvps(rsvpsData);
 
+          // Reconcile the returning user's local state against fresh cloud data
+          if (currentUser.name) reconcileReturningUser();
+
           renderItems();
           renderRoster();
           updateRuleProgressBanner();
@@ -258,6 +284,67 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.warn('Error fetching live data (retaining existing view):', err);
+    }
+  }
+
+  // --- Release pending holds after inactivity ---
+  function releasePendingHolds() {
+    inactivityTimer = null;
+    const hadPending = currentUser.claimedItems.some(c => c.status === 'pending');
+    if (!hadPending) return;
+    currentUser.claimedItems = currentUser.claimedItems.filter(c => c.status === 'confirmed');
+    saveUserToLocalStorage();
+    if (currentUser.name) persistRsvpsToCloud();
+    else { renderItems(); renderRoster(); updateRuleProgressBanner(); }
+  }
+
+  // --- Reconcile returning user's local state against fresh cloud data ---
+  // Called after every successful fetchLatestData when currentUser.name is known.
+  function reconcileReturningUser() {
+    const cloudEntry = rsvpsData.find(
+      r => r.name && r.name.toLowerCase() === currentUser.name.toLowerCase()
+    );
+
+    if (cloudEntry) {
+      // Cloud is authoritative for committed RSVP fields — sync form if user hasn't edited them
+      if (!guestAttendingSelect.dataset.userEdited) {
+        currentUser.attending = cloudEntry.attending || 'yes';
+        guestAttendingSelect.value = currentUser.attending;
+      }
+      if (!guestCountInput.dataset.userEdited) {
+        currentUser.guestsCount = cloudEntry.guestsCount || 1;
+        guestCountInput.value = currentUser.guestsCount;
+      }
+      if (!guestNotesInput.dataset.userEdited && cloudEntry.notes) {
+        currentUser.notes = cloudEntry.notes;
+        guestNotesInput.value = currentUser.notes;
+      }
+    }
+
+    // Reconcile pending items: drop any that are now taken by someone else in cloud
+    if (currentUser.claimedItems.length) {
+      currentUser.claimedItems = currentUser.claimedItems.map(localClaim => {
+        if (localClaim.status === 'confirmed') return localClaim; // confirmed stays forever
+
+        // If someone else has this item in the cloud, our pending hold is no longer valid
+        const takenByOther = rsvpsData.some(r =>
+          r.name.toLowerCase() !== currentUser.name.toLowerCase() &&
+          r.claimedItems?.some(c => c.itemId === localClaim.itemId)
+        );
+        if (takenByOther) return null;
+
+        // If cloud has an updated status for this item for our user, trust it
+        const cloudClaim = cloudEntry?.claimedItems?.find(c => c.itemId === localClaim.itemId);
+        if (cloudClaim) return { ...localClaim, status: cloudClaim.status };
+
+        return localClaim; // still pending and not taken
+      }).filter(Boolean);
+
+      saveUserToLocalStorage();
+    } else if (cloudEntry?.claimedItems?.length) {
+      // Nothing local but cloud has this user's items — restore from cloud
+      currentUser.claimedItems = [...cloudEntry.claimedItems];
+      saveUserToLocalStorage();
     }
   }
 
@@ -275,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Step 1: Fetch the freshest cloud state so we never overwrite a concurrent user's claim
       let base = rsvpsData;
       try {
-        const freshRes = await fetch(CLOUD_STORAGE_URL, {
+        const freshRes = await fetch(CLOUD_LATEST_URL, {
           cache: 'no-store',
           headers: { 'Accept': 'application/json', 'X-Access-Key': JSONBIN_ACCESS_KEY }
         });
@@ -535,6 +622,10 @@ document.addEventListener('DOMContentLoaded', () => {
     guestAttendingSelect.value = currentUser.attending;
     guestCountInput.value = currentUser.guestsCount;
     guestNotesInput.value = currentUser.notes;
+    // Clear user-edited markers since we've just loaded authoritative cloud data
+    delete guestAttendingSelect.dataset.userEdited;
+    delete guestCountInput.dataset.userEdited;
+    delete guestNotesInput.dataset.userEdited;
   }
 
   // --- Countdown Timer ---
@@ -940,6 +1031,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     saveUserToLocalStorage();
+
+    // Clear user-edited markers — cloud is now up to date with what the user entered
+    delete guestAttendingSelect.dataset.userEdited;
+    delete guestCountInput.dataset.userEdited;
+    delete guestNotesInput.dataset.userEdited;
 
     renderItems();
     renderRoster();
