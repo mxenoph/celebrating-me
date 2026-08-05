@@ -5,6 +5,7 @@
    - "✕ Unclaim" button removes claim/hold & immediately writes to cloud to release item
    - Floating 💾 Save button confirms all "on hold" items (status: confirmed)
    - Detailed Item Summaries on Guest Roster Cards
+   - Cloud sync via jsonbin.io (versioned, private bin — version history available on jsonbin dashboard)
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,9 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
     claimedItems: [] // array of { itemId, quantity, status: 'pending' | 'confirmed' }
   };
 
-  // Active Keyless Cloud Storage URL
-  const CLOUD_STORAGE_URL = 'https://jsonblob.com/api/jsonBlob/019fcb73-a15e-7f5b-b36b-5abe3adbbce9';
-  const POLL_INTERVAL_SECONDS = 15; // 15-second polling — balances freshness with jsonblob rate limits
+  // Cloud Storage — jsonbin.io (versioned, private bin)
+  const JSONBIN_BIN_ID = '6a6ee55ef5f4af5e29e03b69';
+  const JSONBIN_ACCESS_KEY = '$2a$10$NZNg5GPqV6Ip8a0LIiQL5.SgfOklPNGTruj8tf2SsWZNqvGRGpDSq';
+  const CLOUD_STORAGE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+  const POLL_INTERVAL_SECONDS = 15; // 15-second polling
   const SECRET_PASSPHRASE = 'banana';
 
   // BroadcastChannel for instant cross-tab / incognito sync
@@ -236,14 +239,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Fetch Latest Data (Zero-Flicker Error-Resistant Fetch) ---
   async function fetchLatestData() {
     try {
-      const bRes = await fetch(`${CLOUD_STORAGE_URL}?t=${Date.now()}`, {
-        headers: { 'Accept': 'application/json' }
+      const bRes = await fetch(CLOUD_STORAGE_URL, {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json', 'X-Access-Key': JSONBIN_ACCESS_KEY }
       });
 
       if (bRes.ok) {
         const payload = await bRes.json();
-        if (Array.isArray(payload)) {
-          rsvpsData = payload;
+        const data = payload && Array.isArray(payload.record) ? payload.record : payload;
+        if (Array.isArray(data)) {
+          rsvpsData = data;
           saveCachedRsvps(rsvpsData);
 
           if (currentUser.name && rsvpsData.length > 0) {
@@ -274,12 +279,14 @@ document.addEventListener('DOMContentLoaded', () => {
       // Step 1: Fetch the freshest cloud state so we never overwrite a concurrent user's claim
       let base = rsvpsData;
       try {
-        const freshRes = await fetch(`${CLOUD_STORAGE_URL}?t=${Date.now()}`, {
-          headers: { 'Accept': 'application/json' }
+        const freshRes = await fetch(CLOUD_STORAGE_URL, {
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json', 'X-Access-Key': JSONBIN_ACCESS_KEY }
         });
         if (freshRes.ok) {
           const payload = await freshRes.json();
-          if (Array.isArray(payload)) base = payload;
+          const data = payload && Array.isArray(payload.record) ? payload.record : payload;
+          if (Array.isArray(data)) base = data;
         }
       } catch (e) { /* network error — fall back to last known rsvpsData */ }
 
@@ -297,18 +304,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Step 3: Write the merged state back to cloud
+      // Write guard: never PUT an empty array when the cloud already has data
       let writeSuccess = false;
-      try {
-        const putRes = await fetch(CLOUD_STORAGE_URL, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(rsvpsData)
-        });
-        if (putRes.ok || putRes.status === 200) writeSuccess = true;
-      } catch (e) {}
+      if (rsvpsData.length === 0 && base.length > 0) {
+        console.warn('Write guard: refusing to overwrite cloud data with empty array.');
+      } else {
+        try {
+          const putRes = await fetch(CLOUD_STORAGE_URL, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-Access-Key': JSONBIN_ACCESS_KEY
+            },
+            body: JSON.stringify(rsvpsData)
+          });
+          if (putRes.ok || putRes.status === 200) writeSuccess = true;
+        } catch (e) {}
+      }
 
       showToast(writeSuccess ? `✅ Synced to Cloud Live!` : `💾 Saved locally!`);
     } catch (e) {
@@ -385,7 +398,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           await fetch(CLOUD_STORAGE_URL, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-Access-Key': JSONBIN_ACCESS_KEY
+            },
             body: JSON.stringify([])
           });
         } catch (e) {}
